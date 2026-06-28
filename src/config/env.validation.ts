@@ -116,7 +116,30 @@ class EnvironmentVariables {
 }
 
 export function validateEnv(config: Record<string, unknown>) {
-  const validatedConfig = plainToInstance(EnvironmentVariables, config, {
+  const normalizedConfig = { ...config } as Record<string, unknown>;
+  const numericKeys = [
+    'PORT',
+    'DATABASE_POOL_SIZE',
+    'BCRYPT_SALT_ROUNDS',
+    'REDIS_PORT',
+    'REDIS_DB',
+    'REDIS_TTL_SECONDS',
+    'AWS_S3_PRESIGNED_URL_EXPIRY_SECONDS',
+    'THROTTLE_TTL_SECONDS',
+    'THROTTLE_LIMIT',
+  ];
+
+  for (const key of numericKeys) {
+    const value = normalizedConfig[key];
+    if (typeof value === 'string' && value.trim() !== '') {
+      const parsedValue = Number(value);
+      if (Number.isFinite(parsedValue)) {
+        normalizedConfig[key] = parsedValue;
+      }
+    }
+  }
+
+  const validatedConfig = plainToInstance(EnvironmentVariables, normalizedConfig, {
     enableImplicitConversion: true,
   });
 

@@ -23,12 +23,12 @@ import { RedisCacheService } from './redis-cache.service';
       useFactory: async (config: ConfigService) => ({
         store: await redisStore({
           socket: {
-            host: config.get<string>('redis.host'),
-            port: config.get<number>('redis.port'),
+            host: config.get<string>('redis.host') ?? 'localhost',
+            port: config.get<number>('redis.port') ?? 6379,
           },
-          password: config.get<string>('redis.password'),
-          database: config.get<number>('redis.db'),
-          ttl: config.get<number>('redis.ttlSeconds') * 1000,
+          password: config.get<string>('redis.password') || undefined,
+          database: config.get<number>('redis.db') ?? 0,
+          ttl: (config.get<number>('redis.ttlSeconds') ?? 300) * 1000,
         }),
       }),
     }),

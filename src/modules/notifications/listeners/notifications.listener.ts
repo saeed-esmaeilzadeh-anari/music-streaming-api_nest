@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
 import { InjectQueue } from '@nestjs/bullmq';
+import { NotificationType, Prisma } from '@prisma/client';
 import { Queue } from 'bullmq';
 import { NotificationsRepository } from '../repositories/notifications.repository';
 import {
@@ -72,15 +73,15 @@ export class NotificationsEventListener {
   private async createAndDispatch(
     userId: string,
     type: string,
-    payload: { title: string; body: string; metadata?: Record<string, unknown> },
+    payload: { title: string; body: string; metadata?: Prisma.JsonValue },
   ): Promise<void> {
     try {
       const notification = await this.notificationsRepository.create({
         user: { connect: { id: userId } },
-        type: type as never,
+        type: type as NotificationType,
         title: payload.title,
         body: payload.body,
-        metadata: payload.metadata,
+        metadata: (payload.metadata ?? {}) as Prisma.InputJsonValue,
       });
 
       await this.notificationsQueue.add(NOTIFICATION_JOBS.DISPATCH, {
