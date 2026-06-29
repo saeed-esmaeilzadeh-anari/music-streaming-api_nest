@@ -53,8 +53,10 @@ services:
       redis:
         condition: service_healthy
     volumes:
-      - ./src:/usr/src/app/src
-      - ./prisma:/usr/src/app/prisma
+      - .:/usr/src/app
+      - /usr/src/app/node_modules
+      # - ./src:/usr/src/app/src   کامنت گردید بنابر اضافه شدن devContainer
+      # - ./prisma:/usr/src/app/prisma
     command: npm run start:dev
 
 volumes:

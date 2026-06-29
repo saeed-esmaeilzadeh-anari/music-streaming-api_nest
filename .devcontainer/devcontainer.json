@@ -1,0 +1,27 @@
+{
+  "name": "Music Streaming Backend",
+
+  "dockerComposeFile": "../docker-compose.yml",
+
+  "service": "api",
+
+  "workspaceFolder": "/usr/src/app",
+
+  "shutdownAction": "stopCompose",
+
+  "overrideCommand": false,
+
+  "postCreateCommand": "npm install",
+
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "Prisma.prisma",
+        "esbenp.prettier-vscode",
+        "dbaeumer.vscode-eslint",
+        "ms-azuretools.vscode-docker",
+        "eamodio.gitlens"
+      ]
+    }
+  }
+}
