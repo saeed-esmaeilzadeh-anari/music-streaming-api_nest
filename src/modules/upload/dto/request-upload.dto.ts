@@ -27,7 +27,8 @@ export class RequestUploadDto {
 
   @ApiProperty({
     required: false,
-    description: 'Associate this upload with an existing track (required for TRACK_AUDIO / TRACK_COVER).',
+    description:
+      'Associate this upload with an existing track (required for TRACK_AUDIO / TRACK_COVER).',
   })
   @IsOptional()
   @IsUUID()

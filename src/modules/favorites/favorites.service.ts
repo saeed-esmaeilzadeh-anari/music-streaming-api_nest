@@ -39,7 +39,9 @@ export class FavoritesService {
     ]);
 
     return new PaginatedResultDto(
-      favorites.map((f) => plainToInstance(FavoriteResponseDto, f, { excludeExtraneousValues: true })),
+      favorites.map((f) =>
+        plainToInstance(FavoriteResponseDto, f, { excludeExtraneousValues: true }),
+      ),
       totalItems,
       page,
       limit,

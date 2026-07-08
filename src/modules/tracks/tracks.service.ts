@@ -1,8 +1,4 @@
-import {
-  ForbiddenException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { plainToInstance } from 'class-transformer';
 import { EventEmitter2 } from '@nestjs/event-emitter';
@@ -93,15 +89,11 @@ export class TracksService {
     const limit = query.limit ?? 20;
 
     const where: Prisma.TrackWhereInput = {
-      ...(query.search
-        ? { title: { contains: query.search, mode: 'insensitive' } }
-        : {}),
+      ...(query.search ? { title: { contains: query.search, mode: 'insensitive' } } : {}),
       ...(query.artistId ? { artistId: query.artistId } : {}),
       ...(query.albumId ? { albumId: query.albumId } : {}),
       ...(query.status ? { status: query.status } : { status: 'PUBLISHED' }),
-      ...(query.genreId
-        ? { genres: { some: { genreId: query.genreId } } }
-        : {}),
+      ...(query.genreId ? { genres: { some: { genreId: query.genreId } } } : {}),
     };
 
     const [tracks, totalItems] = await Promise.all([

@@ -18,11 +18,7 @@ export class FavoritesRepository {
     return this.prisma.favorite.delete({ where: { userId_trackId: { userId, trackId } } });
   }
 
-  async findMany(params: {
-    skip?: number;
-    take?: number;
-    userId: string;
-  }): Promise<Favorite[]> {
+  async findMany(params: { skip?: number; take?: number; userId: string }): Promise<Favorite[]> {
     return this.prisma.favorite.findMany({
       where: { userId: params.userId },
       skip: params.skip,

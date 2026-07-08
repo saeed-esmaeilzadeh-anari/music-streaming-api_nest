@@ -31,9 +31,7 @@ export class UploadService {
 
   async requestUpload(userId: string, dto: RequestUploadDto) {
     if (ASSET_TYPES_REQUIRING_TRACK.has(dto.assetType) && !dto.trackId) {
-      throw new BadRequestException(
-        `assetType "${dto.assetType}" requires a trackId.`,
-      );
+      throw new BadRequestException(`assetType "${dto.assetType}" requires a trackId.`);
     }
 
     if (dto.trackId) {

@@ -11,12 +11,7 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
-import {
-  ApiBearerAuth,
-  ApiOperation,
-  ApiResponse,
-  ApiTags,
-} from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { UsersService } from './users.service';
 import { UpdateUserDto, UserResponseDto } from './dto';
 import { PaginationQueryDto } from '../../common/dto/pagination-query.dto';
@@ -43,10 +38,7 @@ export class UsersController {
   @Patch('me')
   @ApiOperation({ summary: "Update the current authenticated user's profile" })
   @ApiResponse({ status: 200, type: UserResponseDto })
-  updateProfile(
-    @CurrentUser() user: AuthenticatedUser,
-    @Body() dto: UpdateUserDto,
-  ) {
+  updateProfile(@CurrentUser() user: AuthenticatedUser, @Body() dto: UpdateUserDto) {
     return this.usersService.update(user.id, dto);
   }
 

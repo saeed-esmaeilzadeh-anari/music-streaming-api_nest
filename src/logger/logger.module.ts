@@ -12,7 +12,10 @@ import { randomUUID } from 'crypto';
         const isProduction = config.get<boolean>('app.isProduction');
         return {
           pinoHttp: {
-            level: config.get<string>('app.env') === 'test' ? 'silent' : process.env.LOG_LEVEL ?? 'info',
+            level:
+              config.get<string>('app.env') === 'test'
+                ? 'silent'
+                : (process.env.LOG_LEVEL ?? 'info'),
             genReqId: (req: any) => req.headers['x-request-id'] ?? randomUUID(),
             transport: isProduction
               ? undefined

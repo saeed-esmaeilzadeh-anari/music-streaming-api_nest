@@ -1,10 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import {
-  DeleteObjectCommand,
-  PutObjectCommand,
-  S3Client,
-} from '@aws-sdk/client-s3';
+import { DeleteObjectCommand, PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { randomUUID } from 'crypto';
 
@@ -25,9 +21,7 @@ export class S3Service {
   constructor(private readonly configService: ConfigService) {
     this.bucket = this.configService.get<string>('aws.s3Bucket')!;
     this.publicBaseUrl = this.configService.get<string>('aws.publicBaseUrl');
-    this.presignExpirySeconds = this.configService.get<number>(
-      'aws.presignedUrlExpirySeconds',
-    )!;
+    this.presignExpirySeconds = this.configService.get<number>('aws.presignedUrlExpirySeconds')!;
 
     this.client = new S3Client({
       region: this.configService.get<string>('aws.region'),

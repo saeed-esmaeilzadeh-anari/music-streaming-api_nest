@@ -13,8 +13,10 @@ import { Redis } from 'ioredis';
 export class RedisCacheService {
   private readonly logger = new Logger(RedisCacheService.name);
 
-  constructor(@Inject(CACHE_MANAGER) private readonly cache: Cache,
-              @Inject(REDIS_CLIENT) private readonly redisClient: Redis) {}
+  constructor(
+    @Inject(CACHE_MANAGER) private readonly cache: Cache,
+    @Inject(REDIS_CLIENT) private readonly redisClient: Redis,
+  ) {}
 
   async get<T>(key: string): Promise<T | undefined> {
     try {
@@ -62,20 +64,18 @@ export class RedisCacheService {
   // }
 
   async delByPrefix(prefix: string): Promise<void> {
-  try {
-    const redis = this.redisClient; // یا REDIS_CLIENT
+    try {
+      const redis = this.redisClient; // یا REDIS_CLIENT
 
-    const keys = await redis.keys(`${prefix}*`);
+      const keys = await redis.keys(`${prefix}*`);
 
-    if (!keys.length) return;
+      if (!keys.length) return;
 
-    await redis.del(keys);
-  } catch (error) {
-    this.logger.warn(
-      `Cache delByPrefix failed for prefix "${prefix}": ${error}`,
-    );
+      await redis.del(keys);
+    } catch (error) {
+      this.logger.warn(`Cache delByPrefix failed for prefix "${prefix}": ${error}`);
+    }
   }
-}
 
   buildKey(...parts: Array<string | number>): string {
     return parts.join(':');

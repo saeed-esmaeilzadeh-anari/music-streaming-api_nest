@@ -3,11 +3,7 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 import Stripe from 'stripe';
 import { PaymentsRepository } from '../repositories/payments.repository';
 import { SubscriptionsRepository } from '../../subscription/repositories/subscriptions.repository';
-import {
-  DOMAIN_EVENTS,
-  SubscriptionRenewedEvent,
-  PaymentFailedEvent,
-} from '../../../events';
+import { DOMAIN_EVENTS, SubscriptionRenewedEvent, PaymentFailedEvent } from '../../../events';
 
 /**
  * Reacts to verified Stripe webhook events. Signature verification happens
@@ -102,7 +98,11 @@ export class PaymentsWebhookService {
     if (updated.currentPeriodEnd) {
       this.eventEmitter.emit(
         DOMAIN_EVENTS.SUBSCRIPTION_RENEWED,
-        new SubscriptionRenewedEvent(subscription.userId, subscription.id, updated.currentPeriodEnd),
+        new SubscriptionRenewedEvent(
+          subscription.userId,
+          subscription.id,
+          updated.currentPeriodEnd,
+        ),
       );
     }
   }

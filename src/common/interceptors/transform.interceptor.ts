@@ -1,9 +1,4 @@
-import {
-  CallHandler,
-  ExecutionContext,
-  Injectable,
-  NestInterceptor,
-} from '@nestjs/common';
+import { CallHandler, ExecutionContext, Injectable, NestInterceptor } from '@nestjs/common';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { ApiSuccessResponse } from './api-success-response.interface';
@@ -17,13 +12,8 @@ import { ApiSuccessResponse } from './api-success-response.interface';
  * Registered globally in main.ts via app.useGlobalInterceptors().
  */
 @Injectable()
-export class TransformInterceptor<T>
-  implements NestInterceptor<T, ApiSuccessResponse<T>>
-{
-  intercept(
-    context: ExecutionContext,
-    next: CallHandler<T>,
-  ): Observable<ApiSuccessResponse<T>> {
+export class TransformInterceptor<T> implements NestInterceptor<T, ApiSuccessResponse<T>> {
+  intercept(context: ExecutionContext, next: CallHandler<T>): Observable<ApiSuccessResponse<T>> {
     const response = context.switchToHttp().getResponse();
 
     return next.handle().pipe(

@@ -21,7 +21,12 @@ export class SearchService {
   ) {}
 
   async search(query: SearchQueryDto): Promise<SearchResultDto> {
-    const cacheKey = this.cacheService.buildKey('search', query.type ?? 'ALL', query.q, query.page ?? 1);
+    const cacheKey = this.cacheService.buildKey(
+      'search',
+      query.type ?? 'ALL',
+      query.q,
+      query.page ?? 1,
+    );
     const cached = await this.cacheService.get<SearchResultDto>(cacheKey);
     if (cached) {
       return cached;

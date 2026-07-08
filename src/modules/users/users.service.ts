@@ -1,8 +1,4 @@
-import {
-  ConflictException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { plainToInstance } from 'class-transformer';
 import { UsersRepository } from './repositories/users.repository';
 import { CreateUserDto, UpdateUserDto, UserResponseDto } from './dto';
@@ -19,10 +15,7 @@ export class UsersService {
    * 409 instead of relying on a raw Prisma unique-constraint error.
    */
   async create(dto: CreateUserDto) {
-    const existing = await this.usersRepository.findByEmailOrUsername(
-      dto.email,
-      dto.username,
-    );
+    const existing = await this.usersRepository.findByEmailOrUsername(dto.email, dto.username);
     if (existing) {
       const field = existing.email === dto.email ? 'email' : 'username';
       throw new ConflictException(`A user with this ${field} already exists.`);
@@ -72,9 +65,7 @@ export class UsersService {
     await this.usersRepository.softDelete(id);
   }
 
-  async findAll(
-    query: PaginationQueryDto,
-  ): Promise<PaginatedResultDto<UserResponseDto>> {
+  async findAll(query: PaginationQueryDto): Promise<PaginatedResultDto<UserResponseDto>> {
     const page = query.page ?? 1;
     const limit = query.limit ?? 20;
 

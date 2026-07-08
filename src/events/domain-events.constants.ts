@@ -32,5 +32,4 @@ export const DOMAIN_EVENTS = {
   PAYMENT_FAILED: 'payment.failed',
 } as const;
 
-export type DomainEventName =
-  (typeof DOMAIN_EVENTS)[keyof typeof DOMAIN_EVENTS];
+export type DomainEventName = (typeof DOMAIN_EVENTS)[keyof typeof DOMAIN_EVENTS];

@@ -10,15 +10,8 @@ import { QueueModule } from './queue/queue.module';
 import { DomainEventsModule } from './events';
 import { LoggerModule } from './logger/logger.module';
 
-import {
-  GlobalExceptionFilter,
-  PrismaExceptionFilter,
-} from './common/filters';
-import {
-  TransformInterceptor,
-  LoggingInterceptor,
-  CacheInterceptor,
-} from './common/interceptors';
+import { GlobalExceptionFilter, PrismaExceptionFilter } from './common/filters';
+import { TransformInterceptor, LoggingInterceptor, CacheInterceptor } from './common/interceptors';
 import { JwtAuthGuard } from './modules/auth/guards/jwt-auth.guard';
 import { RolesGuard } from './modules/auth/guards/roles.guard';
 

@@ -1,9 +1,4 @@
-import {
-  Injectable,
-  Logger,
-  OnModuleDestroy,
-  OnModuleInit,
-} from '@nestjs/common';
+import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { Prisma, PrismaClient } from '@prisma/client';
 
 /**
@@ -12,18 +7,12 @@ import { Prisma, PrismaClient } from '@prisma/client';
  * cleanly alongside the Nest application lifecycle.
  */
 @Injectable()
-export class PrismaService
-  extends PrismaClient
-  implements OnModuleInit, OnModuleDestroy
-{
+export class PrismaService extends PrismaClient implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(PrismaService.name);
 
   constructor() {
     super({
-      log:
-        process.env.NODE_ENV === 'development'
-          ? ['warn', 'error']
-          : ['error'],
+      log: process.env.NODE_ENV === 'development' ? ['warn', 'error'] : ['error'],
     });
   }
 
@@ -46,9 +35,7 @@ export class PrismaService
     }
     const tableNames = Object.values(Prisma.ModelName);
     return Promise.all(
-      tableNames.map((name) =>
-        this.$executeRawUnsafe(`TRUNCATE TABLE "${name}" CASCADE;`),
-      ),
+      tableNames.map((name) => this.$executeRawUnsafe(`TRUNCATE TABLE "${name}" CASCADE;`)),
     );
   }
 }

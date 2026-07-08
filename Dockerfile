@@ -10,7 +10,7 @@ COPY prisma ./prisma
 RUN npm ci
 RUN npx prisma generate
 COPY . .
-EXPOSE 3000
+EXPOSE 3001
 CMD ["npm", "run", "start:dev"]
 
 # ---------- Build ----------
@@ -36,5 +36,5 @@ COPY --from=build /usr/src/app/package*.json ./
 RUN addgroup -S appgroup && adduser -S appuser -G appgroup
 USER appuser
 
-EXPOSE 3000
+EXPOSE 3001
 CMD ["node", "dist/main"]

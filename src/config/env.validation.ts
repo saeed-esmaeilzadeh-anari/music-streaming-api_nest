@@ -1,12 +1,5 @@
 import { plainToInstance } from 'class-transformer';
-import {
-  IsEnum,
-  IsNumber,
-  IsOptional,
-  IsString,
-  Min,
-  validateSync,
-} from 'class-validator';
+import { IsEnum, IsNumber, IsOptional, IsString, Min, validateSync } from 'class-validator';
 
 enum NodeEnv {
   Development = 'development',
@@ -19,7 +12,7 @@ class EnvironmentVariables {
   NODE_ENV: NodeEnv = NodeEnv.Development;
 
   @IsNumber()
-  PORT = 3000;
+  PORT = 3001;
 
   @IsString()
   API_PREFIX = 'api/v1';

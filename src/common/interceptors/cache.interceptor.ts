@@ -1,17 +1,9 @@
-import {
-  CallHandler,
-  ExecutionContext,
-  Injectable,
-  NestInterceptor,
-} from '@nestjs/common';
+import { CallHandler, ExecutionContext, Injectable, NestInterceptor } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { Observable, of } from 'rxjs';
 import { tap } from 'rxjs/operators';
 import { RedisCacheService } from '../../redis/redis-cache.service';
-import {
-  CACHE_KEY_PREFIX_KEY,
-  CACHE_TTL_KEY,
-} from '../decorators/cache-ttl.decorator';
+import { CACHE_KEY_PREFIX_KEY, CACHE_TTL_KEY } from '../decorators/cache-ttl.decorator';
 
 /**
  * Opt-in response cache for read-heavy GET endpoints (genres list, track
@@ -29,10 +21,7 @@ export class CacheInterceptor implements NestInterceptor {
     private readonly cacheService: RedisCacheService,
   ) {}
 
-  async intercept(
-    context: ExecutionContext,
-    next: CallHandler,
-  ): Promise<Observable<unknown>> {
+  async intercept(context: ExecutionContext, next: CallHandler): Promise<Observable<unknown>> {
     const ttl = this.reflector.get<number>(CACHE_TTL_KEY, context.getHandler());
     if (!ttl) {
       return next.handle();
@@ -43,10 +32,7 @@ export class CacheInterceptor implements NestInterceptor {
       return next.handle();
     }
 
-    const customPrefix = this.reflector.get<string>(
-      CACHE_KEY_PREFIX_KEY,
-      context.getHandler(),
-    );
+    const customPrefix = this.reflector.get<string>(CACHE_KEY_PREFIX_KEY, context.getHandler());
     const cacheKey = this.cacheService.buildKey(
       customPrefix ?? request.route?.path ?? request.originalUrl,
       request.originalUrl,

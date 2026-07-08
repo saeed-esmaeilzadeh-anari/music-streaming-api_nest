@@ -30,7 +30,11 @@ export class CommentsRepository {
   }): Promise<Comment[]> {
     const targetColumn = this.targetColumn(params.targetType);
     return this.prisma.comment.findMany({
-      where: { targetType: params.targetType as never, [targetColumn]: params.targetId, parentId: null },
+      where: {
+        targetType: params.targetType as never,
+        [targetColumn]: params.targetId,
+        parentId: null,
+      },
       skip: params.skip,
       take: params.take,
       orderBy: { createdAt: 'desc' },

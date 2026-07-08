@@ -19,7 +19,9 @@ export class PaymentsService {
     ]);
 
     return new PaginatedResultDto(
-      payments.map((p) => plainToInstance(PaymentResponseDto, p, { excludeExtraneousValues: true })),
+      payments.map((p) =>
+        plainToInstance(PaymentResponseDto, p, { excludeExtraneousValues: true }),
+      ),
       totalItems,
       page,
       limit,

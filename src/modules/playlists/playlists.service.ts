@@ -80,10 +80,7 @@ export class PlaylistsService {
   async addTrack(playlistId: string, userId: string, dto: AddTrackToPlaylistDto): Promise<void> {
     const playlist = await this.assertOwnership(playlistId, userId);
 
-    const existingEntry = await this.playlistsRepository.findTrackEntry(
-      playlist.id,
-      dto.trackId,
-    );
+    const existingEntry = await this.playlistsRepository.findTrackEntry(playlist.id, dto.trackId);
     if (existingEntry) {
       throw new ConflictException('This track is already in the playlist.');
     }

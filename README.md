@@ -131,7 +131,7 @@ npm run prisma:seed          # creates an admin + demo artist + base genres
 npm run start:dev
 ```
 
-API available at `http://localhost:3000/api/v1`, Swagger docs at `http://localhost:3000/docs`.
+API available at `http://localhost:3001/api/v1`, Swagger docs at `http://localhost:3001/docs`.
 
 To run the whole stack (API + Postgres + Redis) in Docker:
 

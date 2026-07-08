@@ -7,10 +7,7 @@ import { TrackProcessingJobData } from './track-processing.types';
 import { UploadsRepository } from '../repositories/uploads.repository';
 import { TracksRepository } from '../../tracks/repositories/tracks.repository';
 import { S3Service } from '../s3.service';
-import {
-  DOMAIN_EVENTS,
-  TrackProcessingCompletedEvent,
-} from '../../../events';
+import { DOMAIN_EVENTS, TrackProcessingCompletedEvent } from '../../../events';
 
 /**
  * Consumes jobs from the `track-processing` queue. In a real deployment this

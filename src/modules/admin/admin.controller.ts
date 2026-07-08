@@ -24,10 +24,7 @@ export class AdminController {
 
   @Patch('users/:id/status')
   @ApiOperation({ summary: "Update a user's account status, e.g. suspend (admin only)" })
-  updateUserStatus(
-    @Param('id', ParseUUIDPipe) id: string,
-    @Body() dto: UpdateUserStatusDto,
-  ) {
+  updateUserStatus(@Param('id', ParseUUIDPipe) id: string, @Body() dto: UpdateUserStatusDto) {
     return this.adminService.updateUserStatus(id, dto);
   }
 }

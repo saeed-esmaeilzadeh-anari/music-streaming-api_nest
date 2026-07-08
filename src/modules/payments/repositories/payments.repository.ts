@@ -18,11 +18,7 @@ export class PaymentsRepository {
     return this.prisma.payment.update({ where: { id }, data });
   }
 
-  async findMany(params: {
-    userId: string;
-    skip?: number;
-    take?: number;
-  }): Promise<Payment[]> {
+  async findMany(params: { userId: string; skip?: number; take?: number }): Promise<Payment[]> {
     return this.prisma.payment.findMany({
       where: { userId: params.userId },
       skip: params.skip,
