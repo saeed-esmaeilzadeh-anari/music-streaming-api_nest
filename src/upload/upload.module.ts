@@ -1,6 +1,6 @@
 import { Module }          from '@nestjs/common';
 import { BullModule }      from '@nestjs/bullmq';
-import { StorageModule }   from '../../storage/storage.module';
+import { StorageModule }   from '../storage/storage.module';
 import { UploadService }   from './upload.service';
 import { UploadController } from './upload.controller';
 

@@ -14,8 +14,8 @@ import {
 } from '@nestjs/common';
 import { Request } from 'express';
 
-import { JwtAuthGuard }    from '../auth/guards/jwt-auth.guard';
-import { CurrentUser }     from '../../common/decorators/current-user.decorator';
+import { JwtAuthGuard }    from '../modules/auth/guards/jwt-auth.guard';
+import { CurrentUser }     from '../common/decorators/current-user.decorator';
 import { UploadService }   from './upload.service';
 import { RequestUploadDto } from './dto/request-upload.dto';
 import { ConfirmUploadDto } from './dto/confirm-upload.dto';
