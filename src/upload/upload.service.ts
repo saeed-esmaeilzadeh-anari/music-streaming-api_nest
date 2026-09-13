@@ -8,7 +8,7 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
-import { BullMQ_QUEUE }  from '../common/constants';                // your existing queue token
+// import { BullMQ_QUEUE }  from '../common/constants';                // your existing queue token
 import { InjectQueue }   from '@nestjs/bullmq';
 import { Queue }         from 'bullmq';
 import { v4 as uuid }    from 'uuid';

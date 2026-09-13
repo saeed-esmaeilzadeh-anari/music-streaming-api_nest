@@ -141,8 +141,8 @@ model User {
   status          AccountStatus @default(PENDING_VERIFICATION)
   isEmailVerified Boolean       @default(false)
 
-  createdAt DateTime @updatedAt @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt DateTime  @default(now()) @updatedAt
+  updatedAt DateTime  @updatedAt
   deletedAt DateTime?
 
   // Relations
@@ -182,12 +182,12 @@ model RefreshToken {
 
 // Generic follow graph: user follows user (artist profile is 1:1 with a User)
 model Follow {
-  id          String   @id @default(uuid())
-  followerId  String
-  follower    User     @relation("follower", fields: [followerId], references: [id], onDelete: Cascade)
-  followeeId  String
-  followee    User     @relation("followee", fields: [followeeId], references: [id], onDelete: Cascade)
-  createdAt   DateTime @default(now())
+  id         String   @id @default(uuid())
+  followerId String
+  follower   User     @relation("follower", fields: [followerId], references: [id], onDelete: Cascade)
+  followeeId String
+  followee   User     @relation("followee", fields: [followeeId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now())
 
   @@unique([followerId, followeeId])
   @@index([followeeId])
@@ -199,21 +199,21 @@ model Follow {
 // -------------------------------------------------------------------
 
 model Artist {
-  id          String   @id @default(uuid())
-  userId      String   @unique
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  stageName   String
-  bio         String?
-  bannerUrl   String?
-  isVerified  Boolean  @default(false)
-  monthlyListeners Int @default(0)
+  id               String  @id @default(uuid())
+  userId           String  @unique
+  user             User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  stageName        String
+  bio              String?
+  bannerUrl        String?
+  isVerified       Boolean @default(false)
+  monthlyListeners Int     @default(0)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  albums  Album[]
-  tracks  Track[]
-  genres  ArtistGenre[]
+  albums Album[]
+  tracks Track[]
+  genres ArtistGenre[]
 
   @@index([stageName])
   @@map("artists")
@@ -277,9 +277,9 @@ model Album {
 
 model AlbumGenre {
   albumId String
-  album   Album @relation(fields: [albumId], references: [id], onDelete: Cascade)
+  album   Album  @relation(fields: [albumId], references: [id], onDelete: Cascade)
   genreId String
-  genre   Genre @relation(fields: [genreId], references: [id], onDelete: Cascade)
+  genre   Genre  @relation(fields: [genreId], references: [id], onDelete: Cascade)
 
   @@id([albumId, genreId])
   @@map("album_genres")
@@ -290,15 +290,15 @@ model AlbumGenre {
 // -------------------------------------------------------------------
 
 model Track {
-  id            String      @id @default(uuid())
-  title         String
-  durationSec   Int         @default(0)
-  audioUrl      String?
-  coverUrl      String?
-  trackNumber   Int?
-  status        TrackStatus @default(DRAFT)
-  isExplicit    Boolean     @default(false)
-  playCount     BigInt      @default(0)
+  id          String      @id @default(uuid())
+  title       String
+  durationSec Int         @default(0)
+  audioUrl    String?
+  coverUrl    String?
+  trackNumber Int?
+  status      TrackStatus @default(DRAFT)
+  isExplicit  Boolean     @default(false)
+  playCount   BigInt      @default(0)
 
   artistId String
   artist   Artist  @relation(fields: [artistId], references: [id], onDelete: Cascade)
@@ -325,9 +325,9 @@ model Track {
 
 model TrackGenre {
   trackId String
-  track   Track @relation(fields: [trackId], references: [id], onDelete: Cascade)
+  track   Track  @relation(fields: [trackId], references: [id], onDelete: Cascade)
   genreId String
-  genre   Genre @relation(fields: [genreId], references: [id], onDelete: Cascade)
+  genre   Genre  @relation(fields: [genreId], references: [id], onDelete: Cascade)
 
   @@id([trackId, genreId])
   @@map("track_genres")
@@ -338,13 +338,13 @@ model TrackGenre {
 // -------------------------------------------------------------------
 
 model Playlist {
-  id         String             @id @default(uuid())
-  title      String
+  id          String             @id @default(uuid())
+  title       String
   description String?
-  coverUrl   String?
-  visibility PlaylistVisibility @default(PRIVATE)
-  ownerId    String
-  owner      User               @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  coverUrl    String?
+  visibility  PlaylistVisibility @default(PRIVATE)
+  ownerId     String
+  owner       User               @relation(fields: [ownerId], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -394,15 +394,15 @@ model Favorite {
 // -------------------------------------------------------------------
 
 model ListeningHistory {
-  id           String   @id @default(uuid())
-  userId       String
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  trackId      String
-  track        Track    @relation(fields: [trackId], references: [id], onDelete: Cascade)
-  playedAt     DateTime @default(now())
-  progressSec  Int      @default(0)
-  completed    Boolean  @default(false)
-  deviceInfo   String?
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  trackId     String
+  track       Track    @relation(fields: [trackId], references: [id], onDelete: Cascade)
+  playedAt    DateTime @default(now())
+  progressSec Int      @default(0)
+  completed   Boolean  @default(false)
+  deviceInfo  String?
 
   @@index([userId, playedAt])
   @@index([trackId])
@@ -514,17 +514,17 @@ model Subscription {
 }
 
 model Payment {
-  id              String          @id @default(uuid())
-  userId          String
-  user            User            @relation(fields: [userId], references: [id], onDelete: Cascade)
-  subscriptionId  String?
-  subscription    Subscription?   @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
-  provider        PaymentProvider @default(STRIPE)
-  providerRefId   String?         @unique // stripe payment_intent / charge id
-  amountCents     Int
-  currency        String          @default("usd")
-  status          PaymentStatus   @default(PENDING)
-  failureReason   String?
+  id             String          @id @default(uuid())
+  userId         String
+  user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subscriptionId String?
+  subscription   Subscription?   @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
+  provider       PaymentProvider @default(STRIPE)
+  providerRefId  String?         @unique // stripe payment_intent / charge id
+  amountCents    Int
+  currency       String          @default("usd")
+  status         PaymentStatus   @default(PENDING)
+  failureReason  String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -545,7 +545,7 @@ model Upload {
   assetType     UploadAssetType
   status        UploadStatus    @default(PENDING)
   s3Key         String          @unique
-  s3Bucket      String
+  s3Bucket      String?
   mimeType      String?
   sizeBytes     Int?
   originalName  String?
