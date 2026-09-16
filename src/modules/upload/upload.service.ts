@@ -2,26 +2,22 @@ import {
   Injectable,
   Inject,
   NotFoundException,
-  ForbiddenException,
   Logger,
   BadRequestException,
 } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import { PrismaService } from '../../prisma/prisma.service';
-// import { BullMQ_QUEUE }  from '../common/constants';                // your existing queue token
-import { InjectQueue }   from '@nestjs/bullmq';
-import { Queue }         from 'bullmq';
-import { v4 as uuid }    from 'uuid';
+import { ConfigService }  from '@nestjs/config';
+import { InjectQueue }    from '@nestjs/bullmq';
+import { Queue }          from 'bullmq';
+import { v4 as uuid }     from 'uuid';
 import { UploadAssetType, UploadStatus } from '@prisma/client';
 
+import { PrismaService }  from '../../prisma/prisma.service';
 import { STORAGE_PROVIDER, IStorageProvider } from '../../storage/storage.interface';
-import { RequestUploadDto }  from './dto/request-upload.dto';
-import { ConfirmUploadDto }  from './dto/confirm-upload.dto';
+import { RequestUploadDto } from './dto/request-upload.dto';
+import { ConfirmUploadDto } from './dto/confirm-upload.dto';
 
-/** Seconds until a presigned URL expires (S3 only) */
 const PRESIGN_TTL = 900; // 15 minutes
 
-/** Map each asset type to its storage key prefix */
 const KEY_PREFIX: Record<UploadAssetType, string> = {
   TRACK_AUDIO:    'tracks/audio',
   TRACK_COVER:    'tracks/covers',
@@ -32,7 +28,6 @@ const KEY_PREFIX: Record<UploadAssetType, string> = {
   USER_AVATAR:    'users/avatars',
 };
 
-/** Asset types that are sent to the audio-processing queue after confirm */
 const AUDIO_ASSET_TYPES = new Set<UploadAssetType>(['TRACK_AUDIO']);
 
 @Injectable()
@@ -40,68 +35,44 @@ export class UploadService {
   private readonly logger = new Logger(UploadService.name);
 
   constructor(
-    private readonly prisma:   PrismaService,
-    private readonly config:   ConfigService,
+    private readonly prisma:  PrismaService,
+    private readonly config:  ConfigService,
     @Inject(STORAGE_PROVIDER)
-    private readonly storage:  IStorageProvider,
+    private readonly storage: IStorageProvider,
     @InjectQueue('audio-processing')
     private readonly audioQueue: Queue,
   ) {}
 
-  // ─── Presign ─────────────────────────────────────────────────────────────────
+  // ─── Step 1: presign ─────────────────────────────────────────────────────────
 
-  /**
-   * Step 1: create an Upload record in Prisma and return a presigned URL.
-   *
-   * For S3:    returns a real AWS presigned PUT URL valid for PRESIGN_TTL seconds.
-   * For local: returns a URL pointing at our own POST /uploads/local-put/:uploadId
-   *            endpoint so the frontend "PUT" is handled by NestJS directly.
-   */
   async requestPresignedUrl(userId: string, dto: RequestUploadDto) {
     const { assetType, originalName, mimeType, trackId } = dto;
 
-    // Validate trackId requirement
     if (
       (assetType === 'TRACK_AUDIO' || assetType === 'TRACK_COVER') &&
       !trackId
     ) {
       throw new BadRequestException(
-        `trackId is required for assetType ${assetType}`,
+        `trackId is required when assetType is ${assetType}`,
       );
     }
 
-    const extension = originalName.split('.').pop()?.toLowerCase() ?? 'bin';
-    const storageKey = `${KEY_PREFIX[assetType]}/${uuid()}.${extension}`;
+    const ext        = originalName.split('.').pop()?.toLowerCase() ?? 'bin';
+    const storageKey = `${KEY_PREFIX[assetType]}/${uuid()}.${ext}`;
 
-    // Create the Prisma record in PENDING state
     const upload = await this.prisma.upload.create({
       data: {
         userId,
         assetType,
-        status:     'PENDING',
-        s3Key:      storageKey,   // field is named s3Key in schema; holds the storage key
+        status:      'PENDING',
+        s3Key:       storageKey,
         mimeType,
         originalName,
-        trackId:    trackId ?? null,
+        trackId:     trackId ?? null,
       },
     });
 
-    const provider = this.config.get<string>('STORAGE_PROVIDER') ?? 'local';
-
-    let uploadUrl: string;
-
-    if (provider === 's3') {
-      // For S3: generate a real presigned PUT URL
-      // The interface only exposes getSignedUrl (GET), so we delegate to the
-      // S3 provider's upload-presign helper. We add a presignPutUrl method
-      // only on S3StorageProvider (optional enhancement); alternatively the
-      // frontend PUT goes to our local-put endpoint in both providers.
-      // Simplest cross-provider approach: always use our own proxy endpoint.
-      // Real S3 presign is done inside the provider when STORAGE_PROVIDER=s3.
-      uploadUrl = await this.buildUploadUrl(upload.id, storageKey, provider);
-    } else {
-      uploadUrl = await this.buildUploadUrl(upload.id, storageKey, provider);
-    }
+    const uploadUrl = await this.buildUploadUrl(upload.id, storageKey);
 
     return {
       uploadId:  upload.id,
@@ -111,91 +82,82 @@ export class UploadService {
     };
   }
 
-  /**
-   * Build the URL the frontend will PUT the file to.
-   *
-   * - local: POST /uploads/local-put/:uploadId  (handled by NestJS)
-   * - s3:    real AWS presigned PUT URL
-   */
-  private async buildUploadUrl(
-    uploadId: string,
-    key:      string,
-    provider: string,
-  ): Promise<string> {
-    if (provider === 'local') {
-      const base = this.config.get<string>('APP_URL') ?? 'http://localhost:3001';
-      return `${base}/api/v1/uploads/local-put/${uploadId}`;
+  private async buildUploadUrl(uploadId: string, key: string): Promise<string> {
+    const provider = this.config.get<string>('STORAGE_PROVIDER') ?? 'local';
+
+    if (provider === 's3') {
+      const s3 = this.storage as any;
+      if (typeof s3.presignPutUrl === 'function') {
+        return s3.presignPutUrl(key, PRESIGN_TTL) as Promise<string>;
+      }
     }
 
-    // S3: use presigned PUT via the AWS SDK directly
-    // We cast to access the S3-specific presignPut (see s3-storage.provider.ts)
-    const s3 = this.storage as any;
-    if (typeof s3.presignPutUrl === 'function') {
-      return s3.presignPutUrl(key, PRESIGN_TTL);
-    }
-
-    // Fallback: proxy through our own endpoint (also works for S3)
-    const base = this.config.get<string>('APP_URL') ?? 'http://localhost:3001';
-    return `${base}/api/v1/uploads/local-put/${uploadId}`;
+    const appUrl = this.config.get<string>('APP_URL') ?? 'http://localhost:3001';
+    return `${appUrl}/api/v1/uploads/local-put/${uploadId}`;
   }
 
-  // ─── Local PUT handler ────────────────────────────────────────────────────────
+  // ─── Step 2: receive local file ──────────────────────────────────────────────
 
   /**
-   * Receive the file bytes from the frontend (local provider only).
-   * Called by PUT /uploads/local-put/:uploadId in UploadController.
+   * No userId param — this endpoint is @Public().
+   * The uploadId UUID is the credential (unguessable, single-use).
+   * Status check ensures the uploadId can only be used once.
    */
-  async receiveLocalUpload(
-    uploadId: string,
-    userId:   string,
-    buffer:   Buffer,
-  ): Promise<void> {
-    const upload = await this.prisma.upload.findUnique({
-      where: { id: uploadId },
-    });
+  async receiveLocalUpload(uploadId: string, buffer: Buffer): Promise<void> {
+    const upload = await this.prisma.upload.findUnique({ where: { id: uploadId } });
 
-    if (!upload) throw new NotFoundException('Upload not found');
-    if (upload.userId !== userId) throw new ForbiddenException();
+    if (!upload) {
+      throw new NotFoundException('Upload not found');
+    }
     if (upload.status !== 'PENDING') {
-      throw new BadRequestException('Upload already processed');
+      throw new BadRequestException(
+        `Upload already used (status: ${upload.status}). Request a new presigned URL.`,
+      );
     }
 
-    await this.storage.upload(upload.s3Key, buffer, upload.mimeType ?? 'application/octet-stream');
+    await this.storage.upload(
+      upload.s3Key,
+      buffer,
+      upload.mimeType ?? 'application/octet-stream',
+    );
 
     await this.prisma.upload.update({
       where: { id: uploadId },
       data:  { status: 'UPLOADED' },
     });
 
-    this.logger.debug(`Local upload received for uploadId=${uploadId}`);
+    this.logger.debug(
+      `Local upload received — id=${uploadId} key=${upload.s3Key} bytes=${buffer.length}`,
+    );
   }
 
-  // ─── Confirm ─────────────────────────────────────────────────────────────────
+  // ─── Step 3: confirm ─────────────────────────────────────────────────────────
 
-  /**
-   * Step 3: mark upload PROCESSING (audio) or READY (images), enqueue job.
-   */
   async confirmUpload(userId: string, dto: ConfirmUploadDto) {
     const { uploadId, sizeBytes } = dto;
 
-    const upload = await this.prisma.upload.findUnique({
-      where: { id: uploadId },
-    });
+    const upload = await this.prisma.upload.findUnique({ where: { id: uploadId } });
 
-    if (!upload)               throw new NotFoundException('Upload not found');
-    if (upload.userId !== userId) throw new ForbiddenException();
-    if (!['PENDING', 'UPLOADED'].includes(upload.status)) {
+    if (!upload) throw new NotFoundException('Upload not found');
+
+    // Re-assert ownership at confirm time (upload.userId was set at presign)
+    if (upload.userId !== userId) {
+      throw new NotFoundException('Upload not found'); // don't leak existence to wrong user
+    }
+
+    const acceptedStatuses: UploadStatus[] = ['PENDING', 'UPLOADED'];
+    if (!acceptedStatuses.includes(upload.status)) {
       throw new BadRequestException(`Upload is already in status: ${upload.status}`);
     }
 
-    const isAudio = AUDIO_ASSET_TYPES.has(upload.assetType);
+    const isAudio   = AUDIO_ASSET_TYPES.has(upload.assetType);
     const newStatus: UploadStatus = isAudio ? 'PROCESSING' : 'READY';
 
     const updated = await this.prisma.upload.update({
       where: { id: uploadId },
       data: {
         status: newStatus,
-        ...(sizeBytes ? { sizeBytes } : {}),
+        ...(sizeBytes != null ? { sizeBytes } : {}),
       },
     });
 
@@ -205,36 +167,27 @@ export class UploadService {
         trackId:  upload.trackId,
         s3Key:    upload.s3Key,
       });
-      this.logger.log(`Queued audio-processing job for trackId=${upload.trackId}`);
+      this.logger.log(`Queued audio-processing — trackId=${upload.trackId}`);
     }
 
     return updated;
   }
 
-  // ─── Status polling ───────────────────────────────────────────────────────────
+  // ─── Polling ──────────────────────────────────────────────────────────────────
 
   async getUploadStatus(uploadId: string, userId: string) {
-    const upload = await this.prisma.upload.findUnique({
-      where: { id: uploadId },
-    });
-
-    if (!upload)               throw new NotFoundException('Upload not found');
-    if (upload.userId !== userId) throw new ForbiddenException();
-
+    const upload = await this.prisma.upload.findUnique({ where: { id: uploadId } });
+    if (!upload || upload.userId !== userId) {
+      throw new NotFoundException('Upload not found');
+    }
     return upload;
   }
 
-  // ─── Signed URL for playback/display ─────────────────────────────────────────
+  // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-  /**
-   * Generate a URL to read a stored file.
-   * Called by track/album/artist services when constructing response objects.
-   */
   async getReadUrl(s3Key: string, expiresIn = PRESIGN_TTL): Promise<string> {
     return this.storage.getSignedUrl(s3Key, expiresIn);
   }
-
-  // ─── Cleanup ──────────────────────────────────────────────────────────────────
 
   async deleteFile(s3Key: string): Promise<void> {
     await this.storage.delete(s3Key);

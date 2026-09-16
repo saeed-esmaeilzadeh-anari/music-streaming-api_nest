@@ -1,16 +1,26 @@
-import { ExecutionContext, Injectable } from '@nestjs/common';
-import { Reflector } from '@nestjs/core';
-import { AuthGuard } from '@nestjs/passport';
-import { IS_PUBLIC_KEY } from '../../../common/decorators/public.decorator';
+import { Injectable, ExecutionContext } from '@nestjs/common';
+import { Reflector }                   from '@nestjs/core';
+import { AuthGuard }                   from '@nestjs/passport';
+import { IS_PUBLIC_KEY }               from '../../../common/decorators/public.decorator';
 
 /**
- * Default auth guard, applied globally in app.module.ts via APP_GUARD.
- * Skips validation entirely for handlers/controllers annotated with @Public().
- * Otherwise delegates to Passport's 'jwt' strategy (JwtStrategy).
+ * JwtAuthGuard
+ *
+ * Global guard (registered via APP_GUARD in AppModule) that protects all
+ * routes by default. Routes decorated with @Public() are skipped.
+ *
+ * IMPORTANT — if your project already has this file, add ONLY the
+ * @Public() check inside canActivate and do not replace the rest:
+ *
+ *   const isPublic = this.reflector.getAllAndOverride<boolean>(IS_PUBLIC_KEY, [
+ *     context.getHandler(),
+ *     context.getClass(),
+ *   ]);
+ *   if (isPublic) return true;
  */
 @Injectable()
 export class JwtAuthGuard extends AuthGuard('jwt') {
-  constructor(private readonly reflector: Reflector) {
+  constructor(private reflector: Reflector) {
     super();
   }
 
@@ -19,11 +29,7 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
       context.getHandler(),
       context.getClass(),
     ]);
-
-    if (isPublic) {
-      return true;
-    }
-
+    if (isPublic) return true;
     return super.canActivate(context);
   }
 }
