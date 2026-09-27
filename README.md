@@ -153,3 +153,31 @@ docker compose up --build
 - **New domain event**: add the name to `DOMAIN_EVENTS` and a payload class in `src/events/domain-events.payloads.ts`, emit via `EventEmitter2.emit()`, listen via `@OnEvent()`.
 - **New cached endpoint**: add `@CacheTTL(seconds, 'prefix')` to any GET handler — no other wiring needed.
 - **New queue**: add a name to `QUEUE_NAMES`, register it in `QueueModule` (or locally via `BullModule.registerQueue` in the owning feature module), add a `@Processor()` class.
+
+<!-- جهت اجرای redis -->
+<!-- PowerShell را Run as Administrator باز کن:
+
+sc.exe start Memurai
+
+بعد:
+
+sc.exe query Memurai -->
+
+
+
+<!-- اعمال تغییرات سورس و اجرای مجدد داکر
+# 1. تغییرات کد را انجام بده
+
+# 2. ساخت Image جدید
+docker build -t music-streaming-api:latest .
+
+# 3. حذف کانتینر قبلی
+docker stop music-streaming-api
+docker rm music-streaming-api
+
+# 4. اجرای نسخه جدید
+docker run -d `
+  --name music-streaming-api `
+  -p 3001:3001 `
+  --env-file .env `
+  music-streaming-api:latest -->

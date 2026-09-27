@@ -137,6 +137,15 @@ export class TracksService {
   }
 
   private async assertArtistOwnership(artistId: string, userId: string, role: Role) {
+   
+    console.log('DEBUG assertArtistOwnership:', {
+      artistId,
+      userId,
+      role,
+      adminRole: Role.ADMIN,
+      moderatorRole: Role.MODERATOR,
+    });
+
     if (role === Role.ADMIN || role === Role.MODERATOR) {
       return; // staff can manage any track
     }

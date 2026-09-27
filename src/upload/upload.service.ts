@@ -1,31 +1,26 @@
-import {
-  Injectable,
-  Inject,
-  NotFoundException,
-  Logger,
-  BadRequestException,
-} from '@nestjs/common';
-import { ConfigService }  from '@nestjs/config';
-import { InjectQueue }    from '@nestjs/bullmq';
-import { Queue }          from 'bullmq';
-import { v4 as uuid }     from 'uuid';
+import { Injectable, Inject, NotFoundException, Logger, BadRequestException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { InjectQueue } from '@nestjs/bullmq';
+import { Queue } from 'bullmq';
+import { v4 as uuid } from 'uuid';
 import { UploadAssetType, UploadStatus } from '@prisma/client';
 
-import { PrismaService }  from '../prisma/prisma.service';
+import { PrismaService } from '../prisma/prisma.service';
 import { STORAGE_PROVIDER, IStorageProvider } from '../storage/storage.interface';
 import { RequestUploadDto } from './dto/request-upload.dto';
 import { ConfirmUploadDto } from './dto/confirm-upload.dto';
+import { QUEUE_NAMES, TRACK_PROCESSING_JOBS } from '@/queue/queue.constants';
 
 const PRESIGN_TTL = 900; // 15 minutes
 
 const KEY_PREFIX: Record<UploadAssetType, string> = {
-  TRACK_AUDIO:    'tracks/audio',
-  TRACK_COVER:    'tracks/covers',
-  ALBUM_COVER:    'albums/covers',
-  ARTIST_AVATAR:  'artists/avatars',
-  ARTIST_BANNER:  'artists/banners',
+  TRACK_AUDIO: 'tracks/audio',
+  TRACK_COVER: 'tracks/covers',
+  ALBUM_COVER: 'albums/covers',
+  ARTIST_AVATAR: 'artists/avatars',
+  ARTIST_BANNER: 'artists/banners',
   PLAYLIST_COVER: 'playlists/covers',
-  USER_AVATAR:    'users/avatars',
+  USER_AVATAR: 'users/avatars',
 };
 
 const AUDIO_ASSET_TYPES = new Set<UploadAssetType>(['TRACK_AUDIO']);
@@ -35,11 +30,12 @@ export class UploadService {
   private readonly logger = new Logger(UploadService.name);
 
   constructor(
-    private readonly prisma:  PrismaService,
-    private readonly config:  ConfigService,
+    private readonly prisma: PrismaService,
+    private readonly config: ConfigService,
     @Inject(STORAGE_PROVIDER)
     private readonly storage: IStorageProvider,
-    @InjectQueue('audio-processing')
+    // @InjectQueue('audio-processing')
+    @InjectQueue(QUEUE_NAMES.TRACK_PROCESSING)
     private readonly audioQueue: Queue,
   ) {}
 
@@ -48,36 +44,31 @@ export class UploadService {
   async requestPresignedUrl(userId: string, dto: RequestUploadDto) {
     const { assetType, originalName, mimeType, trackId } = dto;
 
-    if (
-      (assetType === 'TRACK_AUDIO' || assetType === 'TRACK_COVER') &&
-      !trackId
-    ) {
-      throw new BadRequestException(
-        `trackId is required when assetType is ${assetType}`,
-      );
+    if ((assetType === 'TRACK_AUDIO' || assetType === 'TRACK_COVER') && !trackId) {
+      throw new BadRequestException(`trackId is required when assetType is ${assetType}`);
     }
 
-    const ext        = originalName.split('.').pop()?.toLowerCase() ?? 'bin';
+    const ext = originalName.split('.').pop()?.toLowerCase() ?? 'bin';
     const storageKey = `${KEY_PREFIX[assetType]}/${uuid()}.${ext}`;
 
     const upload = await this.prisma.upload.create({
       data: {
         userId,
         assetType,
-        status:      'PENDING',
-        s3Key:       storageKey,
+        status: 'PENDING',
+        s3Key: storageKey,
         mimeType,
         originalName,
-        trackId:     trackId ?? null,
+        trackId: trackId ?? null,
       },
     });
 
     const uploadUrl = await this.buildUploadUrl(upload.id, storageKey);
 
     return {
-      uploadId:  upload.id,
+      uploadId: upload.id,
       uploadUrl,
-      s3Key:     storageKey,
+      s3Key: storageKey,
       expiresIn: PRESIGN_TTL,
     };
   }
@@ -115,15 +106,11 @@ export class UploadService {
       );
     }
 
-    await this.storage.upload(
-      upload.s3Key,
-      buffer,
-      upload.mimeType ?? 'application/octet-stream',
-    );
+    await this.storage.upload(upload.s3Key, buffer, upload.mimeType ?? 'application/octet-stream');
 
     await this.prisma.upload.update({
       where: { id: uploadId },
-      data:  { status: 'UPLOADED' },
+      data: { status: 'UPLOADED' },
     });
 
     this.logger.debug(
@@ -150,7 +137,7 @@ export class UploadService {
       throw new BadRequestException(`Upload is already in status: ${upload.status}`);
     }
 
-    const isAudio   = AUDIO_ASSET_TYPES.has(upload.assetType);
+    const isAudio = AUDIO_ASSET_TYPES.has(upload.assetType);
     const newStatus: UploadStatus = isAudio ? 'PROCESSING' : 'READY';
 
     const updated = await this.prisma.upload.update({
@@ -161,11 +148,20 @@ export class UploadService {
       },
     });
 
+    // if (isAudio && upload.trackId) {
+    //   await this.audioQueue.add('process-track-audio', {
+    //     uploadId: upload.id,
+    //     trackId: upload.trackId,
+    //     s3Key: upload.s3Key,
+    //   });
+    //   this.logger.log(`Queued audio-processing — trackId=${upload.trackId}`);
+    // }
+
     if (isAudio && upload.trackId) {
-      await this.audioQueue.add('process-track-audio', {
+      await this.audioQueue.add(TRACK_PROCESSING_JOBS.EXTRACT_METADATA, {
         uploadId: upload.id,
-        trackId:  upload.trackId,
-        s3Key:    upload.s3Key,
+        trackId: upload.trackId,
+        s3Key: upload.s3Key,
       });
       this.logger.log(`Queued audio-processing — trackId=${upload.trackId}`);
     }

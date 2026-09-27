@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import * as fs   from 'fs/promises';
+import * as fs from 'fs/promises';
 import * as path from 'path';
 
 import type { IStorageProvider } from './storage.interface';
@@ -29,20 +29,21 @@ import type { IStorageProvider } from './storage.interface';
  */
 @Injectable()
 export class LocalStorageProvider implements IStorageProvider {
-  private readonly logger  = new Logger(LocalStorageProvider.name);
+  private readonly logger = new Logger(LocalStorageProvider.name);
   private readonly baseDir: string;
   private readonly baseUrl: string;
 
   constructor(private readonly config: ConfigService) {
-    this.baseDir = this.config.get<string>('LOCAL_STORAGE_DIR')
-      ?? path.join(process.cwd(), 'uploads');
+    this.baseDir =
+      this.config.get<string>('LOCAL_STORAGE_DIR') ?? path.join(process.cwd(), 'uploads');
 
-    this.baseUrl = this.config.get<string>('LOCAL_STORAGE_URL')
-      ?? 'http://localhost:3001/uploads';
+    this.baseUrl = this.config.get<string>('LOCAL_STORAGE_URL') ?? 'http://localhost:3001/uploads';
 
     this.logger.log(
       `LocalStorageProvider initialised — dir: ${this.baseDir}, url: ${this.baseUrl}`,
     );
+    console.log('LOCAL STORAGE DIR:', this.baseDir);
+    console.log('LOCAL STORAGE URL:', this.baseUrl);
   }
 
   /** Resolve a storage key to an absolute filesystem path */
@@ -54,8 +55,15 @@ export class LocalStorageProvider implements IStorageProvider {
 
   async upload(key: string, buffer: Buffer, _mimeType: string): Promise<string> {
     const dest = this.resolve(key);
+
+    console.log('LOCAL UPLOAD KEY:', key);
+    console.log('LOCAL UPLOAD DEST:', dest);
+    console.log('LOCAL UPLOAD SIZE:', buffer.length);
+
     await fs.mkdir(path.dirname(dest), { recursive: true });
     await fs.writeFile(dest, buffer);
+
+    console.log('LOCAL FILE WRITTEN:', dest);
     this.logger.debug(`Saved file locally: ${dest}`);
     return key;
   }
@@ -65,7 +73,7 @@ export class LocalStorageProvider implements IStorageProvider {
    * expiresIn is intentionally ignored — it only makes sense for S3.
    */
   async getSignedUrl(key: string, _expiresIn: number): Promise<string> {
-    const normalised = key.split(path.sep).join('/');   // ensure forward slashes
+    const normalised = key.split(path.sep).join('/'); // ensure forward slashes
     return `${this.baseUrl}/${normalised}`;
   }
 
