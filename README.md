@@ -154,7 +154,7 @@ docker compose up --build
 - **New cached endpoint**: add `@CacheTTL(seconds, 'prefix')` to any GET handler — no other wiring needed.
 - **New queue**: add a name to `QUEUE_NAMES`, register it in `QueueModule` (or locally via `BullModule.registerQueue` in the owning feature module), add a `@Processor()` class.
 
-<!-- جهت اجرای redis -->
+<!-- جهت اجرای redis بدون داکر -->
 <!-- PowerShell را Run as Administrator باز کن:
 
 sc.exe start Memurai
@@ -163,6 +163,8 @@ sc.exe start Memurai
 
 sc.exe query Memurai -->
 
+<!-- جهت اجرای redis در داکر
+docker run -d --name redis -p 6379:6379 redis:7-alpine -->
 
 
 <!-- اعمال تغییرات سورس و اجرای مجدد داکر
@@ -181,3 +183,37 @@ docker run -d `
   -p 3001:3001 `
   --env-file .env `
   music-streaming-api:latest -->
+
+  <!-- جهت اجرای minio
+  
+  docker run -d --name minio -p 9000:9000 -p 9001:9001 -e MINIO_ROOT_USER=minioadmin -e MINIO_ROOT_PASSWORD=minioadmin -v minio_data:/data quay.io/minio/minio:latest server /data --console-address ":9001"
+  
+  curl.exe --noproxy "*" -i http://127.0.0.1:9000/minio/health/live
+   -->
+
+
+   <!-- لاگ گیری برای اجرای بک اند
+   docker logs -f music-streaming-api -->
+
+   <!-- داکر ران
+   docker rm -f music-streaming-api 
+
+   docker run -d `                   
+>>   --name music-streaming-api `
+>>   --network music-network `
+>>   -p 3001:3001 `
+>>   --env-file .env `
+>>   music-streaming-api -->
+
+
+<!-- ساخت مجدد پستگرس در داکر
+docker run -d `                   
+>>   --name music-streaming-postgres `
+>>   --network music-network `
+>>   -p 5432:5432 `
+>>   -e POSTGRES_DB=music_streaming `
+>>   -e POSTGRES_USER=postgres `
+>>   -e POSTGRES_PASSWORD=postgres `
+>>   -v postgres_data:/var/lib/postgresql/data `
+>>   postgres:16 -->
+

@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 
@@ -60,9 +60,16 @@ import { AdminModule } from './modules/admin/admin.module';
         ],
       }),
     }),
-    ServeStaticModule.forRoot({
-      rootPath: join(process.cwd(), 'uploads'),
-      serveRoot: '/uploads',
+    ServeStaticModule.forRootAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (config: ConfigService) => [
+        {
+          rootPath: config.get<string>('LOCAL_STORAGE_DIR') ?? join(process.cwd(), 'uploads'),
+
+          serveRoot: '/uploads',
+        },
+      ],
     }),
     // ---- Feature modules ----
     AuthModule,
