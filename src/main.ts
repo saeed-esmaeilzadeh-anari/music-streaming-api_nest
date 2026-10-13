@@ -20,12 +20,29 @@ import * as path from 'path';
 import { AppModule } from './app.module';
 
 async function bootstrap() {
+  // Disable Nest's default body parser so the binary local-upload route can
+  // consume the request stream before JSON/urlencoded parsers run.
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
     bufferLogs: true,
-    rawBody: true,
+    bodyParser: false,
   });
 
   const configService = app.get(ConfigService);
+  const apiPrefix = configService.get<string>('app.apiPrefix') ?? 'api/v1';
+
+  // IMPORTANT: this must be registered before express.json/urlencoded.
+  // express.raw() places the uploaded binary bytes in req.body as a Buffer.
+  app.use(
+    `/${apiPrefix}/uploads/local-put`,
+    express.raw({
+      type: '*/*',
+      limit: '110mb',
+    }),
+  );
+
+  // Restore Nest/Express's usual parsers for all other API requests.
+  app.use(express.json({ limit: '1mb' }));
+  app.use(express.urlencoded({ extended: true, limit: '1mb' }));
 
   app.useLogger(app.get(Logger));
 
@@ -55,8 +72,6 @@ async function bootstrap() {
   // ─────────────────────────────────────────────
   // Global prefix
   // ─────────────────────────────────────────────
-
-  const apiPrefix = configService.get<string>('app.apiPrefix') ?? 'api/v1';
 
   app.setGlobalPrefix(apiPrefix);
 
@@ -90,18 +105,6 @@ async function bootstrap() {
       }),
     );
   }
-
-  // ─────────────────────────────────────────────
-  // Local upload endpoint
-  // ─────────────────────────────────────────────
-
-  app.use(
-    '/api/v1/uploads/local-put',
-    express.raw({
-      type: '*/*',
-      limit: '110mb',
-    }),
-  );
 
   // ─────────────────────────────────────────────
   // Swagger
