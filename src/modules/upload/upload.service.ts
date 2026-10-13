@@ -137,6 +137,18 @@ export class UploadService {
       throw new BadRequestException(`Upload is already in status: ${upload.status}`);
     }
 
+    // A PENDING upload is not proof that bytes reached storage. Local PUT and
+    // S3 PUT must both result in an existing object before confirm can proceed.
+    const fileExists = await this.storage.exists(upload.s3Key);
+    if (!fileExists) {
+      this.logger.error(
+        `Upload confirmation rejected — file missing: uploadId=${uploadId}, key=${upload.s3Key}, status=${upload.status}`,
+      );
+      throw new BadRequestException(
+        'Upload file was not found in storage. The file was not saved; retry the upload before confirming.',
+      );
+    }
+
     const isAudio = AUDIO_ASSET_TYPES.has(upload.assetType);
     const newStatus: UploadStatus = isAudio ? 'PROCESSING' : 'READY';
 
