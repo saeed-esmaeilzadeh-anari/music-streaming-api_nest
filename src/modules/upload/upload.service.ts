@@ -137,6 +137,19 @@ export class UploadService {
       throw new BadRequestException(`Upload is already in status: ${upload.status}`);
     }
 
+    // Never mark an upload READY/PROCESSING solely because the client called
+    // /confirm. Local PUT can fail or an old server could have returned 204 for
+    // an empty body; S3 clients likewise need the uploaded object verified.
+    const fileExists = await this.storage.exists(upload.s3Key);
+    if (!fileExists) {
+      this.logger.error(
+        `Upload confirmation rejected — object missing: id=${uploadId}, key=${upload.s3Key}, provider=${this.config.get<string>('STORAGE_PROVIDER') ?? 'local'}, status=${upload.status}`,
+      );
+      throw new BadRequestException(
+        'Upload file was not found in storage. The file bytes were not saved; retry the upload before confirming.',
+      );
+    }
+
     const isAudio = AUDIO_ASSET_TYPES.has(upload.assetType);
     const newStatus: UploadStatus = isAudio ? 'PROCESSING' : 'READY';
 

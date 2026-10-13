@@ -10,6 +10,7 @@ import {
   HttpCode,
   HttpStatus,
   ParseUUIDPipe,
+  BadRequestException,
 } from '@nestjs/common';
 import { Request } from 'express';
 
@@ -62,14 +63,22 @@ export class UploadController {
   @HttpCode(HttpStatus.NO_CONTENT)
   async receiveLocalUpload(
     @Param('uploadId', ParseUUIDPipe) uploadId: string,
-    @Req() req: Request & { rawBody?: Buffer },
+    @Req() req: Request & { rawBody?: Buffer; body?: unknown },
   ): Promise<void> {
-    const buffer = (req as any).rawBody as Buffer | undefined;
+    // express.raw() populates req.body with the actual binary payload.
+    // req.rawBody is retained as a fallback for compatible middleware setups.
+    const buffer = Buffer.isBuffer(req.body)
+      ? req.body
+      : Buffer.isBuffer(req.rawBody)
+        ? req.rawBody
+        : undefined;
+
     if (!buffer || buffer.length === 0) {
-      // Empty body — noop. Prevents silent data loss from misconfigured
-      // middleware but does not throw so the frontend doesn't crash.
-      return;
+      throw new BadRequestException(
+        'No file bytes received. Ensure the client sends the file as the raw request body.',
+      );
     }
+
     await this.uploadService.receiveLocalUpload(uploadId, buffer);
   }
 

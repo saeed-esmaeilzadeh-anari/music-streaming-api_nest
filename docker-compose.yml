@@ -43,6 +43,9 @@ services:
     environment:
       DATABASE_URL: postgresql://postgres:postgres@postgres:5432/music_streaming?schema=public
       REDIS_HOST: redis
+      # Inside Docker, use the mounted project directory rather than a Windows H:\ path.
+      # This maps to <repository-root>\uploads on the Windows host via .:/usr/src/app.
+      LOCAL_STORAGE_DIR: /usr/src/app/uploads
     ports:
       - '3001:3001'
     depends_on:
