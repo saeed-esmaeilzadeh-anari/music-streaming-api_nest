@@ -10,18 +10,19 @@ import {
   HttpCode,
   HttpStatus,
   ParseUUIDPipe,
+  BadRequestException,
 } from '@nestjs/common';
 import { Request } from 'express';
 
-import { JwtAuthGuard }     from '../auth/guards/jwt-auth.guard';
-import { Public }           from '../../common/decorators/public.decorator';
-import { CurrentUser }      from '../../common/decorators/current-user.decorator';
-import { UploadService }    from './upload.service';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { Public } from '../../common/decorators/public.decorator';
+import { CurrentUser } from '../../common/decorators/current-user.decorator';
+import { UploadService } from './upload.service';
 import { RequestUploadDto } from './dto/request-upload.dto';
 import { ConfirmUploadDto } from './dto/confirm-upload.dto';
 
 @Controller('uploads')
-@UseGuards(JwtAuthGuard)   // default: all routes require JWT
+@UseGuards(JwtAuthGuard) // default: all routes require JWT
 export class UploadController {
   constructor(private readonly uploadService: UploadService) {}
 
@@ -30,10 +31,7 @@ export class UploadController {
    * Authenticated: yes — we need userId to create the Upload record.
    */
   @Post('presign')
-  async requestPresignedUrl(
-    @CurrentUser('id') userId: string,
-    @Body() dto: RequestUploadDto,
-  ) {
+  async requestPresignedUrl(@CurrentUser('id') userId: string, @Body() dto: RequestUploadDto) {
     return this.uploadService.requestPresignedUrl(userId, dto);
   }
 
@@ -64,12 +62,27 @@ export class UploadController {
     @Param('uploadId', ParseUUIDPipe) uploadId: string,
     @Req() req: Request & { rawBody?: Buffer },
   ): Promise<void> {
-    const buffer = (req as any).rawBody as Buffer | undefined;
+    console.log('[LOCAL PUT CONTROLLER HIT]', {
+      uploadId,
+      bodyIsBuffer: Buffer.isBuffer(req.body),
+      rawBodyIsBuffer: Buffer.isBuffer(req.rawBody),
+      bodyLength: Buffer.isBuffer(req.body)
+        ? req.body.length
+        : Buffer.isBuffer(req.rawBody)
+          ? req.rawBody.length
+          : 0,
+    });
+
+    const buffer = Buffer.isBuffer(req.body)
+      ? req.body
+      : Buffer.isBuffer(req.rawBody)
+        ? req.rawBody
+        : undefined;
+
     if (!buffer || buffer.length === 0) {
-      // Empty body — noop. Prevents silent data loss from misconfigured
-      // middleware but does not throw so the frontend doesn't crash.
-      return;
+      throw new BadRequestException('No file bytes received by the local upload endpoint.');
     }
+
     await this.uploadService.receiveLocalUpload(uploadId, buffer);
   }
 
@@ -78,10 +91,7 @@ export class UploadController {
    * Authenticated: yes — confirms ownership of the upload before finalising.
    */
   @Post('confirm')
-  async confirmUpload(
-    @CurrentUser('id') userId: string,
-    @Body() dto: ConfirmUploadDto,
-  ) {
+  async confirmUpload(@CurrentUser('id') userId: string, @Body() dto: ConfirmUploadDto) {
     return this.uploadService.confirmUpload(userId, dto);
   }
 

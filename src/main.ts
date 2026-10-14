@@ -20,6 +20,11 @@ import * as path from 'path';
 import { AppModule } from './app.module';
 
 async function bootstrap() {
+  console.log('[BACKEND BOOT MARKER]', {
+    file: __filename,
+    cwd: process.cwd(),
+    pid: process.pid,
+  });
   // Disable Nest's default body parser so the binary local-upload route can
   // consume the request stream before JSON/urlencoded parsers run.
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
