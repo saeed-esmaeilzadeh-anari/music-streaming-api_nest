@@ -60,7 +60,7 @@ export class UploadController {
   @HttpCode(HttpStatus.NO_CONTENT)
   async receiveLocalUpload(
     @Param('uploadId', ParseUUIDPipe) uploadId: string,
-    @Req() req: Request & { rawBody?: Buffer },
+    @Req() req: Request & { rawBody?: Buffer; body?: unknown },
   ): Promise<void> {
     console.log('[LOCAL PUT CONTROLLER HIT]', {
       uploadId,

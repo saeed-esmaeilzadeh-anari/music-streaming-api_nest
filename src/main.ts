@@ -99,8 +99,9 @@ async function bootstrap() {
   // Local storage
   // ─────────────────────────────────────────────
 
-  if (process.env.STORAGE_PROVIDER === 'local') {
-    const uploadsDir = process.env.LOCAL_STORAGE_DIR ?? path.join(process.cwd(), 'uploads');
+  const storageProvider = configService.get<string>('STORAGE_PROVIDER') ?? 'local';
+  if (storageProvider === 'local') {
+    const uploadsDir = configService.get<string>('LOCAL_STORAGE_DIR') ?? path.join(process.cwd(), 'uploads');
 
     app.use(
       '/uploads',

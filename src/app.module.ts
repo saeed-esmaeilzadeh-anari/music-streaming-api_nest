@@ -1,10 +1,7 @@
 import { Module } from '@nestjs/common';
-import { ConfigModule, ConfigService } from '@nestjs/config';
+import { ConfigModule } from '@nestjs/config';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
-
-import { ServeStaticModule } from '@nestjs/serve-static';
-import { join } from 'path';
 
 import { configurations, validateEnv } from './config';
 import { PrismaModule } from './prisma/prisma.module';
@@ -59,17 +56,6 @@ import { AdminModule } from './modules/admin/admin.module';
           },
         ],
       }),
-    }),
-    ServeStaticModule.forRootAsync({
-      imports: [ConfigModule],
-      inject: [ConfigService],
-      useFactory: (config: ConfigService) => [
-        {
-          rootPath: config.get<string>('LOCAL_STORAGE_DIR') ?? join(process.cwd(), 'uploads'),
-
-          serveRoot: '/uploads',
-        },
-      ],
     }),
     // ---- Feature modules ----
     AuthModule,
