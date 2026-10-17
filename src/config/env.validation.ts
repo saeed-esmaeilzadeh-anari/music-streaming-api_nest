@@ -106,6 +106,10 @@ class EnvironmentVariables {
   @IsOptional()
   @IsString()
   LOG_LEVEL?: string;
+
+  @IsOptional()
+  @IsString()
+  REDIS_TLS?: string;
 }
 
 export function validateEnv(config: Record<string, unknown>) {

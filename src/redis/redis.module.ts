@@ -25,6 +25,7 @@ import { RedisCacheService } from './redis-cache.service';
           socket: {
             host: config.get<string>('redis.host') ?? 'localhost',
             port: config.get<number>('redis.port') ?? 6379,
+            ...(config.get<boolean>('redis.tls') ? { tls: true } : {}),
           },
           password: config.get<string>('redis.password') || undefined,
           database: config.get<number>('redis.db') ?? 0,
@@ -43,6 +44,7 @@ import { RedisCacheService } from './redis-cache.service';
           port: config.get<number>('redis.port'),
           password: config.get<string>('redis.password'),
           db: config.get<number>('redis.db'),
+          ...(config.get<boolean>('redis.tls') ? { tls: {} } : {}),
           maxRetriesPerRequest: 3,
         });
       },
