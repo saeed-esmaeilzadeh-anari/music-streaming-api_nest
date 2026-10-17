@@ -9,7 +9,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { STORAGE_PROVIDER, IStorageProvider } from '../storage/storage.interface';
 import { RequestUploadDto } from './dto/request-upload.dto';
 import { ConfirmUploadDto } from './dto/confirm-upload.dto';
-import { QUEUE_NAMES, TRACK_PROCESSING_JOBS } from '@/queue/queue.constants';
+import { QUEUE_NAMES, TRACK_PROCESSING_JOBS } from '../queue/queue.constants';
 
 const PRESIGN_TTL = 900; // 15 minutes
 

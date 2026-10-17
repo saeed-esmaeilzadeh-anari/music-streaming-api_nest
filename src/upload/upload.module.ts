@@ -3,7 +3,7 @@ import { BullModule }      from '@nestjs/bullmq';
 import { StorageModule }   from '../storage/storage.module';
 import { UploadService }   from './upload.service';
 import { UploadController } from './upload.controller';
-import { QUEUE_NAMES } from '@/queue/queue.constants';
+import { QUEUE_NAMES } from '../queue/queue.constants';
 
 @Module({
   imports: [
