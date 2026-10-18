@@ -101,7 +101,8 @@ async function bootstrap() {
 
   const storageProvider = configService.get<string>('STORAGE_PROVIDER') ?? 'local';
   if (storageProvider === 'local') {
-    const uploadsDir = configService.get<string>('LOCAL_STORAGE_DIR') ?? path.join(process.cwd(), 'uploads');
+    const uploadsDir =
+      configService.get<string>('LOCAL_STORAGE_DIR') ?? path.join(process.cwd(), 'uploads');
 
     app.use(
       '/uploads',
@@ -153,7 +154,14 @@ async function bootstrap() {
 
   const swaggerDocument = SwaggerModule.createDocument(app, swaggerConfig);
 
+  // SwaggerModule.setup('docs', app, swaggerDocument, {
+  //   swaggerOptions: {
+  //     persistAuthorization: true,
+  //   },
+  // });
+
   SwaggerModule.setup('docs', app, swaggerDocument, {
+    customSwaggerUiPath: path.join(process.cwd(), 'node_modules', 'swagger-ui-dist'),
     swaggerOptions: {
       persistAuthorization: true,
     },
