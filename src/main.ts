@@ -55,13 +55,31 @@ async function bootstrap() {
   // Security middleware
   // ─────────────────────────────────────────────
 
+  // app.use(
+  //   helmet({
+  //     crossOriginResourcePolicy: {
+  //       policy: 'cross-origin',
+  //     },
+  //   }),
+  // );
+
   app.use(
     helmet({
       crossOriginResourcePolicy: {
         policy: 'cross-origin',
       },
+      contentSecurityPolicy: {
+        directives: {
+          defaultSrc: ["'self'"],
+          scriptSrc: ["'self'", "'unsafe-inline'", 'https://cdn.jsdelivr.net'],
+          styleSrc: ["'self'", "'unsafe-inline'", 'https://cdn.jsdelivr.net'],
+          imgSrc: ["'self'", 'data:', 'https:'],
+          fontSrc: ["'self'", 'data:', 'https://cdn.jsdelivr.net'],
+        },
+      },
     }),
   );
+
   app.use(compression());
   app.use(cookieParser());
 
@@ -160,8 +178,19 @@ async function bootstrap() {
   //   },
   // });
 
+  // SwaggerModule.setup('docs', app, swaggerDocument, {
+  //   customSwaggerUiPath: path.join(process.cwd(), 'node_modules', 'swagger-ui-dist'),
+  //   swaggerOptions: {
+  //     persistAuthorization: true,
+  //   },
+  // });
+
   SwaggerModule.setup('docs', app, swaggerDocument, {
-    customSwaggerUiPath: path.join(process.cwd(), 'node_modules', 'swagger-ui-dist'),
+    customCssUrl: 'https://cdn.jsdelivr.net/npm/swagger-ui-dist@5.33.3/swagger-ui.css',
+    customJs: [
+      'https://cdn.jsdelivr.net/npm/swagger-ui-dist@5.33.3/swagger-ui-bundle.js',
+      'https://cdn.jsdelivr.net/npm/swagger-ui-dist@5.33.3/swagger-ui-standalone-preset.js',
+    ],
     swaggerOptions: {
       persistAuthorization: true,
     },
