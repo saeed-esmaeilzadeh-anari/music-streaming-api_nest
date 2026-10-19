@@ -217,3 +217,8 @@ docker run -d `
 >>   -v postgres_data:/var/lib/postgresql/data `
 >>   postgres:16 -->
 
+
+<!-- 14050726 پوش کردن در گیت برای تغییرات تک فایل  -->
+git add src/main.ts
+git commit -m "fix: load Swagger UI assets from CDN"
+git push
