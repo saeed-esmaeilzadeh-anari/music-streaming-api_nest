@@ -53,36 +53,67 @@ export class AuthService {
     return { user, ...tokens };
   }
 
+  
   async login(dto: LoginDto, meta: RequestMetadata = {}): Promise<AuthResponseDto> {
-    const user = await this.usersService.findByEmailForAuth(dto.email);
-    if (!user || user.deletedAt) {
-      throw new UnauthorizedException('Invalid email or password.');
+    let stage = 'find-user';
+
+    try {
+      const user = await this.usersService.findByEmailForAuth(dto.email);
+
+      if (!user || user.deletedAt) {
+        throw new UnauthorizedException('Invalid email or password.');
+      }
+
+      if (user.status === 'SUSPENDED') {
+        throw new ForbiddenException('This account has been suspended.');
+      }
+
+      stage = 'compare-password';
+
+      const passwordMatches = await bcrypt.compare(
+        dto.password,
+        user.passwordHash,
+      );
+
+      if (!passwordMatches) {
+        throw new UnauthorizedException('Invalid email or password.');
+      }
+
+      stage = 'issue-token-pair';
+
+      const tokens = await this.issueTokenPair(
+        {
+          sub: user.id,
+          email: user.email,
+          username: user.username,
+          role: user.role as Role,
+        },
+        meta,
+      );
+
+      return {
+        user: {
+          id: user.id,
+          email: user.email,
+          username: user.username,
+          role: user.role as Role,
+        },
+        ...tokens,
+      };
+    } catch (error: unknown) {
+      // Never log the request body, password, password hash, or tokens.
+      console.error('[AUTH LOGIN FAILED]', {
+        stage,
+        errorName: error instanceof Error ? error.name : 'UnknownError',
+        errorMessage:
+          error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+      });
+
+      throw error;
     }
-
-    if (user.status === 'SUSPENDED') {
-      throw new ForbiddenException('This account has been suspended.');
-    }
-
-    const passwordMatches = await bcrypt.compare(dto.password, user.passwordHash);
-    if (!passwordMatches) {
-      throw new UnauthorizedException('Invalid email or password.');
-    }
-
-    const tokens = await this.issueTokenPair(
-      { sub: user.id, email: user.email, username: user.username, role: user.role as Role },
-      meta,
-    );
-
-    return {
-      user: {
-        id: user.id,
-        email: user.email,
-        username: user.username,
-        role: user.role as Role,
-      },
-      ...tokens,
-    };
   }
+
 
   /**
    * Rotates refresh tokens: the presented token is verified against its
