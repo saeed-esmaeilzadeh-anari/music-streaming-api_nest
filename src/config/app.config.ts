@@ -5,6 +5,9 @@ export default registerAs('app', () => ({
   port: parseInt(process.env.PORT ?? '3001', 10),
   apiPrefix: process.env.API_PREFIX ?? 'api/v1',
   url: process.env.APP_URL ?? 'http://localhost:3001',
-  corsOrigins: (process.env.CORS_ORIGINS ?? '').split(',').filter(Boolean),
+  corsOrigins: (process.env.CORS_ORIGINS ?? '')
+    .split(',')
+    .map((origin) => origin.trim())
+    .filter(Boolean),
   isProduction: process.env.NODE_ENV === 'production',
 }));
