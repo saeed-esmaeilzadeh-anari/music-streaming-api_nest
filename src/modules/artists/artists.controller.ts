@@ -31,6 +31,20 @@ export class ArtistsController {
     return this.artistsService.findAll(query);
   }
 
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.LISTENER, Role.ARTIST, Role.ADMIN)
+  @Get('me')
+  @ApiOperation({ summary: "Get the current user's artist profile, if one exists" })
+  @ApiResponse({
+    status: 200,
+    type: ArtistResponseDto,
+    description: "Returns the current user's artist profile, or null if setup has not started.",
+  })
+  findMine(@CurrentUser('id') userId: string) {
+    return this.artistsService.findOwnProfile(userId);
+  }
+
   @Public()
   @Get(':id')
   @CacheTTL(60, 'artists:detail')
@@ -42,10 +56,15 @@ export class ArtistsController {
 
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.ARTIST, Role.ADMIN)
+  @Roles(Role.LISTENER, Role.ARTIST, Role.ADMIN)
   @Post()
-  @ApiOperation({ summary: 'Create an artist profile for the current user' })
+  @ApiOperation({
+    summary: 'Create an artist profile for the current user',
+    description:
+      'A listener is promoted to ARTIST when the profile is created. Existing staff roles are preserved.',
+  })
   @ApiResponse({ status: 201, type: ArtistResponseDto })
+  @ApiResponse({ status: 409, description: 'An artist profile already exists for this account.' })
   create(@CurrentUser('id') userId: string, @Body() dto: CreateArtistDto) {
     return this.artistsService.createProfile(userId, dto);
   }
