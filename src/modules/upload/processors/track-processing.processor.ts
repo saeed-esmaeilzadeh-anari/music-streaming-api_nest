@@ -52,7 +52,7 @@ export class TrackProcessingProcessor extends WorkerHost {
   }
 
   private async extractMetadata(job: Job<TrackProcessingJobData>): Promise<void> {
-    const { uploadId, trackId, s3Key } = job.data;
+    const { uploadId, trackId } = job.data;
     this.logger.log(`Processing upload ${uploadId} for track ${trackId}`);
 
     // Mark upload as PROCESSING
