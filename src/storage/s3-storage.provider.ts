@@ -44,6 +44,9 @@ export class S3StorageProvider implements IStorageProvider {
     this.client = new S3Client({
       region,
       ...(endpoint ? { endpoint, forcePathStyle: true } : {}),
+      // Supabase's S3-compatible endpoint does not support the SDK's default
+      // CRC32 query parameters on presigned PUT URLs. Keep checksums opt-in.
+      requestChecksumCalculation: 'WHEN_REQUIRED',
       credentials: {
         accessKeyId:     this.config.getOrThrow<string>('AWS_ACCESS_KEY_ID'),
         secretAccessKey: this.config.getOrThrow<string>('AWS_SECRET_ACCESS_KEY'),
