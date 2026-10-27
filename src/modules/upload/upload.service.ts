@@ -182,7 +182,8 @@ export class UploadService {
     // For TRACK_COVER: generate the URL and update the track immediately
     // (no background processing needed for images)
     if (upload.assetType === 'TRACK_COVER' && upload.trackId) {
-      const coverUrl = await this.storage.getSignedUrl(upload.s3Key, 60 * 60 * 24 * 365);
+      // Keep Supabase S3 SigV4 signed URLs below the one-week expiry limit.
+      const coverUrl = await this.storage.getSignedUrl(upload.s3Key, 60 * 60 * 24 * 6);
       await this.prisma.upload.update({
         where: { id: uploadId },
         data: { status: 'READY' },
