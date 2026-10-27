@@ -4,6 +4,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { plainToInstance } from 'class-transformer';
 import { ArtistsRepository } from './repositories/artists.repository';
 import { CreateArtistDto, UpdateArtistDto, ArtistResponseDto } from './dto';
@@ -15,18 +16,28 @@ export class ArtistsService {
   constructor(private readonly artistsRepository: ArtistsRepository) {}
 
   async createProfile(userId: string, dto: CreateArtistDto): Promise<ArtistResponseDto> {
-    const existing = await this.artistsRepository.findByUserId(userId);
-    if (existing) {
-      throw new ConflictException('An artist profile already exists for this account.');
+    try {
+      const result = await this.artistsRepository.createForUser(userId, {
+        stageName: dto.stageName,
+        bio: dto.bio,
+      });
+
+      if (result.status === 'missing-user') {
+        throw new NotFoundException('User not found.');
+      }
+
+      if (result.status === 'existing') {
+        throw new ConflictException('An artist profile already exists for this account.');
+      }
+
+      return this.toResponseDto(result.artist);
+    } catch (error: unknown) {
+      // Handle a concurrent duplicate request through the database's unique constraint.
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+        throw new ConflictException('An artist profile already exists for this account.');
+      }
+      throw error;
     }
-
-    const artist = await this.artistsRepository.create({
-      stageName: dto.stageName,
-      bio: dto.bio,
-      user: { connect: { id: userId } },
-    });
-
-    return this.toResponseDto(artist);
   }
 
   async findById(id: string): Promise<ArtistResponseDto> {
@@ -43,6 +54,11 @@ export class ArtistsService {
       throw new NotFoundException('No artist profile exists for this account.');
     }
     return this.toResponseDto(artist);
+  }
+
+  async findOwnProfile(userId: string): Promise<ArtistResponseDto | null> {
+    const artist = await this.artistsRepository.findByUserId(userId);
+    return artist ? this.toResponseDto(artist) : null;
   }
 
   async update(id: string, userId: string, dto: UpdateArtistDto): Promise<ArtistResponseDto> {
