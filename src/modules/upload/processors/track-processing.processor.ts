@@ -1,10 +1,10 @@
 import { Processor, WorkerHost, OnWorkerEvent } from '@nestjs/bullmq';
-import { Inject, Logger } from '@nestjs/common';
+import { Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { Job } from 'bullmq';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 
 import { QUEUE_NAMES, TRACK_PROCESSING_JOBS } from '../../../queue/queue.constants';
-import { STORAGE_PROVIDER, IStorageProvider } from '../../../storage/storage.interface';
 import { TracksRepository } from '../../tracks/repositories/tracks.repository';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { DOMAIN_EVENTS, TrackProcessingCompletedEvent } from '../../../events';
@@ -36,8 +36,7 @@ export class TrackProcessingProcessor extends WorkerHost {
   constructor(
     private readonly prisma: PrismaService,
     private readonly tracksRepository: TracksRepository,
-    @Inject(STORAGE_PROVIDER)
-    private readonly storage: IStorageProvider,
+    private readonly config: ConfigService,
     private readonly eventEmitter: EventEmitter2,
   ) {
     super();
@@ -53,7 +52,7 @@ export class TrackProcessingProcessor extends WorkerHost {
   }
 
   private async extractMetadata(job: Job<TrackProcessingJobData>): Promise<void> {
-    const { uploadId, trackId, s3Key } = job.data;
+    const { uploadId, trackId } = job.data;
     this.logger.log(`Processing upload ${uploadId} for track ${trackId}`);
 
     // Mark upload as PROCESSING
@@ -63,22 +62,23 @@ export class TrackProcessingProcessor extends WorkerHost {
     });
 
     try {
-      // Supabase S3 SigV4 presigned URLs must expire in less than seven days.
-      // Keep stored media URLs below that limit so processing can publish the track.
-      const audioUrl = await this.storage.getSignedUrl(s3Key, 60 * 60 * 24 * 6);
+      // Store a stable backend URL instead of a time-limited S3 URL.
+      // The endpoint redirects to a freshly signed storage URL for each playback request.
+      const audioUrl = this.getStableAudioUrl(trackId);
 
       // Placeholder for real audio metadata extraction (ffprobe/ffmpeg).
       const durationSec = await this.simulateDurationExtraction();
+
+      // Mark the upload READY before publishing the track so playback can resolve its object.
+      await this.prisma.upload.update({
+        where: { id: uploadId },
+        data: { status: 'READY' },
+      });
 
       await this.tracksRepository.update(trackId, {
         audioUrl,
         durationSec,
         status: 'PUBLISHED',
-      });
-
-      await this.prisma.upload.update({
-        where: { id: uploadId },
-        data: { status: 'READY' },
       });
 
       this.eventEmitter.emit(
@@ -87,7 +87,7 @@ export class TrackProcessingProcessor extends WorkerHost {
       );
 
       this.logger.log(
-        `Track ${trackId} published — audioUrl stored as a six-day signed URL, duration: ${durationSec}s`,
+        `Track ${trackId} published — stable audio endpoint saved, duration: ${durationSec}s`,
       );
     } catch (error) {
       this.logger.error(`Track processing failed for upload ${uploadId}: ${error}`);
@@ -104,6 +104,24 @@ export class TrackProcessingProcessor extends WorkerHost {
 
       throw error; // let BullMQ apply its retry/backoff policy
     }
+  }
+
+  private getStableAudioUrl(trackId: string): string {
+    const configuredAppUrl = (
+      this.config.get<string>('APP_URL') ?? 'http://localhost:3001'
+    ).trim();
+    const appUrl = /^https?:\/\//i.test(configuredAppUrl)
+      ? configuredAppUrl
+      : /^(localhost|127\.0\.0\.1)(:\d+)?$/i.test(configuredAppUrl)
+        ? `http://${configuredAppUrl}`
+        : `https://${configuredAppUrl}`;
+    const apiPrefix = (
+      this.config.get<string>('app.apiPrefix') ??
+      this.config.get<string>('API_PREFIX') ??
+      'api/v1'
+    ).replace(/^\/+|\/+$/g, '');
+
+    return `${appUrl.replace(/\/+$/g, '')}/${apiPrefix}/uploads/tracks/${trackId}/audio`;
   }
 
   /** Replace with real ffprobe output parsing in production. */

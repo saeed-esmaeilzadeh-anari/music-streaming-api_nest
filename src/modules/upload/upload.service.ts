@@ -211,6 +211,38 @@ export class UploadService {
 
   // ─── Helpers ─────────────────────────────────────────────────────────────────
 
+  /**
+   * Resolve a stable public track-audio URL to a short-lived storage URL.
+   * The stable URL is stored on the Track; this method signs the underlying
+   * object only when a client actually requests playback.
+   */
+  async getTrackAudioRedirectUrl(trackId: string): Promise<string> {
+    const track = await this.prisma.track.findUnique({
+      where: { id: trackId },
+      select: { id: true, status: true },
+    });
+
+    if (!track || track.status !== 'PUBLISHED') {
+      throw new NotFoundException('Track audio not found');
+    }
+
+    const upload = await this.prisma.upload.findFirst({
+      where: {
+        trackId,
+        assetType: 'TRACK_AUDIO',
+        status: 'READY',
+      },
+      orderBy: { updatedAt: 'desc' },
+      select: { s3Key: true },
+    });
+
+    if (!upload) {
+      throw new NotFoundException('Track audio not found');
+    }
+
+    return this.storage.getSignedUrl(upload.s3Key, PRESIGN_TTL);
+  }
+
   async getReadUrl(s3Key: string, expiresIn = PRESIGN_TTL): Promise<string> {
     return this.storage.getSignedUrl(s3Key, expiresIn);
   }
