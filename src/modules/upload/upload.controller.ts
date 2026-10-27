@@ -11,8 +11,9 @@ import {
   HttpStatus,
   ParseUUIDPipe,
   BadRequestException,
+  Res,
 } from '@nestjs/common';
-import { Request } from 'express';
+import { Request, Response } from 'express';
 
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { Public } from '../../common/decorators/public.decorator';
@@ -93,6 +94,22 @@ export class UploadController {
   @Post('confirm')
   async confirmUpload(@CurrentUser('id') userId: string, @Body() dto: ConfirmUploadDto) {
     return this.uploadService.confirmUpload(userId, dto);
+  }
+
+  /**
+   * Stable public media URL for published tracks. The controller redirects
+   * to a fresh short-lived storage URL on each request, so the URL saved on
+   * the Track record does not expire.
+   */
+  @Get('tracks/:trackId/audio')
+  @Public()
+  async redirectTrackAudio(
+    @Param('trackId', ParseUUIDPipe) trackId: string,
+    @Res() response: Response,
+  ): Promise<void> {
+    const targetUrl = await this.uploadService.getTrackAudioRedirectUrl(trackId);
+    response.setHeader('Cache-Control', 'private, no-store, max-age=0');
+    response.redirect(302, targetUrl);
   }
 
   /**
