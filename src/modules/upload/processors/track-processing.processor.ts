@@ -63,12 +63,9 @@ export class TrackProcessingProcessor extends WorkerHost {
     });
 
     try {
-      // Generate the public URL via the storage provider.
-      // LocalStorageProvider returns: http://localhost:3001/uploads/<key>
-      // S3StorageProvider returns a presigned GET URL (time-limited)
-      // For a permanent public URL with S3/MinIO, use getSignedUrl with
-      // a long TTL or configure the bucket as public.
-      const audioUrl = await this.storage.getSignedUrl(s3Key, 60 * 60 * 24 * 365); // 1 year
+      // Supabase S3 SigV4 presigned URLs must expire in less than seven days.
+      // Keep stored media URLs below that limit so processing can publish the track.
+      const audioUrl = await this.storage.getSignedUrl(s3Key, 60 * 60 * 24 * 6);
 
       // Placeholder for real audio metadata extraction (ffprobe/ffmpeg).
       const durationSec = await this.simulateDurationExtraction();
@@ -90,7 +87,7 @@ export class TrackProcessingProcessor extends WorkerHost {
       );
 
       this.logger.log(
-        `Track ${trackId} published — audioUrl: ${audioUrl}, duration: ${durationSec}s`,
+        `Track ${trackId} published — audioUrl stored as a six-day signed URL, duration: ${durationSec}s`,
       );
     } catch (error) {
       this.logger.error(`Track processing failed for upload ${uploadId}: ${error}`);
