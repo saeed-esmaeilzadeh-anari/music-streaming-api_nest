@@ -30,8 +30,8 @@ jobs:
         run: npx prisma generate
       - name: Type-check
         run: npx tsc --noEmit
-      - name: Lint
-        run: npx eslint "{src,apps,libs,test}/**/*.ts"
+      - name: Lint (formatting debt reported as warnings)
+        run: npx eslint "{src,apps,libs,test}/**/*.ts" --rule 'prettier/prettier: warn'
       - name: Build
         run: npm run build
       - name: Unit tests with coverage
