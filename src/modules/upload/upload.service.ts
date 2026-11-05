@@ -1,4 +1,12 @@
-import { Injectable, Inject, NotFoundException, Logger, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  Inject,
+  NotFoundException,
+  ForbiddenException,
+  InternalServerErrorException,
+  Logger,
+  BadRequestException,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
@@ -48,6 +56,28 @@ export class UploadService {
       throw new BadRequestException(`trackId is required when assetType is ${assetType}`);
     }
 
+    if (trackId) {
+      const track = await this.prisma.track.findUnique({
+        where: { id: trackId },
+        select: { id: true, artist: { select: { userId: true } } },
+      });
+
+      if (!track) {
+        throw new NotFoundException('Track not found');
+      }
+      if (track.artist.userId !== userId) {
+        throw new ForbiddenException('You do not have permission to upload assets for this track');
+      }
+    }
+
+    const normalizedMimeType = mimeType.toLowerCase();
+    if (assetType === 'TRACK_AUDIO' && !normalizedMimeType.startsWith('audio/')) {
+      throw new BadRequestException('Track audio uploads must use an audio MIME type');
+    }
+    if (assetType !== 'TRACK_AUDIO' && !normalizedMimeType.startsWith('image/')) {
+      throw new BadRequestException('Artwork uploads must use an image MIME type');
+    }
+
     const ext = originalName.split('.').pop()?.toLowerCase() ?? 'bin';
     const storageKey = `${KEY_PREFIX[assetType]}/${uuid()}.${ext}`;
 
@@ -77,10 +107,12 @@ export class UploadService {
     const provider = this.config.get<string>('STORAGE_PROVIDER') ?? 'local';
 
     if (provider === 's3') {
-      const s3 = this.storage as any;
-      if (typeof s3.presignPutUrl === 'function') {
-        return s3.presignPutUrl(key, PRESIGN_TTL) as Promise<string>;
+      if (!this.storage.presignPutUrl) {
+        throw new InternalServerErrorException(
+          'The configured S3 storage provider does not support presigned uploads',
+        );
       }
+      return this.storage.presignPutUrl(key, PRESIGN_TTL);
     }
 
     const appUrl = this.config.get<string>('APP_URL') ?? 'http://localhost:3001';
