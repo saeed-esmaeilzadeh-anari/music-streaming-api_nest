@@ -1,6 +1,7 @@
 import { ConflictException, NotFoundException } from '@nestjs/common';
 import { FavoritesService } from './favorites.service';
 import { FavoritesRepository } from './repositories/favorites.repository';
+import { PaginationQueryDto } from '../../common/dto/pagination-query.dto';
 
 describe('FavoritesService', () => {
   const userId = 'user-1';
@@ -71,11 +72,12 @@ describe('FavoritesService', () => {
     repository.findMany.mockResolvedValue([{ id: 'favorite-1', userId, trackId, createdAt: new Date() }]);
     repository.count.mockResolvedValue(1);
 
-    const result = await service.findAll(userId, { page: 1, limit: 10 });
+    const query = Object.assign(new PaginationQueryDto(), { page: 1, limit: 10 });
+    const result = await service.findAll(userId, query);
 
     expect(repository.findMany).toHaveBeenCalledWith({ userId, skip: 0, take: 10 });
     expect(repository.count).toHaveBeenCalledWith(userId);
     expect(result.items).toHaveLength(1);
-    expect(result.totalItems).toBe(1);
+    expect(result.meta.totalItems).toBe(1);
   });
 });
