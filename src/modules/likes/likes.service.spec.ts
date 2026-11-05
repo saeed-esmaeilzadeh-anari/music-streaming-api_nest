@@ -2,6 +2,7 @@ import { ConflictException, NotFoundException } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { LikesRepository } from './repositories/likes.repository';
 import { LikesService } from './likes.service';
+import { LikeTargetTypeDto } from './dto/create-like.dto';
 
 describe('LikesService', () => {
   const userId = 'user-1';
@@ -34,16 +35,16 @@ describe('LikesService', () => {
     repository.create.mockResolvedValue({
       id: 'like-1',
       userId,
-      targetType: 'TRACK',
+      targetType: LikeTargetTypeDto.TRACK,
       trackId,
       createdAt: new Date(),
     });
 
-    const result = await service.like(userId, { targetType: 'TRACK', targetId: trackId });
+    const result = await service.like(userId, { targetType: LikeTargetTypeDto.TRACK, targetId: trackId });
 
     expect(repository.create).toHaveBeenCalledWith({
       user: { connect: { id: userId } },
-      targetType: 'TRACK',
+      targetType: LikeTargetTypeDto.TRACK,
       track: { connect: { id: trackId } },
     });
     expect(result).toMatchObject({ id: 'like-1', targetType: 'TRACK' });
@@ -53,7 +54,7 @@ describe('LikesService', () => {
   it('rejects duplicate likes', async () => {
     repository.findOne.mockResolvedValue({ id: 'like-1' });
 
-    await expect(service.like(userId, { targetType: 'TRACK', targetId: trackId }))
+    await expect(service.like(userId, { targetType: LikeTargetTypeDto.TRACK, targetId: trackId }))
       .rejects.toBeInstanceOf(ConflictException);
 
     expect(repository.create).not.toHaveBeenCalled();
