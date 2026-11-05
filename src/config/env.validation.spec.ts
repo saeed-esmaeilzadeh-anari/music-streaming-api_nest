@@ -1,3 +1,4 @@
+import 'reflect-metadata';
 import { validateEnv } from './env.validation';
 
 const localEnvironment = {
