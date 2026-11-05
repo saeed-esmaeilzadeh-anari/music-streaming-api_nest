@@ -1,62 +1,37 @@
-import { Module }        from '@nestjs/common';
+import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 
-import { STORAGE_PROVIDER }      from './storage.interface';
-import { S3StorageProvider }     from './s3-storage.provider';
-import { LocalStorageProvider }  from './local-storage.provider';
+import { IStorageProvider, STORAGE_PROVIDER } from './storage.interface';
+import { S3StorageProvider } from './s3-storage.provider';
+import { LocalStorageProvider } from './local-storage.provider';
 
 /**
- * StorageModule
- *
- * Registers whichever IStorageProvider implementation is selected by the
- * STORAGE_PROVIDER environment variable and exports it under the
- * STORAGE_PROVIDER injection token.
- *
- * Usage in any feature module:
- *
- *   @Module({ imports: [StorageModule], ... })
- *   export class UploadModule {}
- *
- *   @Injectable()
- *   export class UploadService {
- *     constructor(
- *       @Inject(STORAGE_PROVIDER) private readonly storage: IStorageProvider,
- *     ) {}
- *   }
- *
- * Environment:
- *   STORAGE_PROVIDER=local   → LocalStorageProvider  (dev default)
- *   STORAGE_PROVIDER=s3      → S3StorageProvider     (production)
- *   (unset)                  → LocalStorageProvider  (safe fallback)
+ * Construct only the selected provider. Registering both concrete providers
+ * as Nest providers eagerly constructs both at application startup, which
+ * makes local development incorrectly require AWS credentials.
  */
+export function createStorageProvider(config: ConfigService): IStorageProvider {
+  const provider = config.get<string>('STORAGE_PROVIDER') ?? 'local';
+
+  switch (provider) {
+    case 'local':
+      return new LocalStorageProvider(config);
+    case 's3':
+      return new S3StorageProvider(config);
+    default:
+      throw new Error(
+        `Unknown STORAGE_PROVIDER="${provider}". Valid values are "local" and "s3".`,
+      );
+  }
+}
+
 @Module({
   imports: [ConfigModule],
   providers: [
-    S3StorageProvider,
-    LocalStorageProvider,
     {
-      provide:    STORAGE_PROVIDER,
-      inject:     [ConfigService, S3StorageProvider, LocalStorageProvider],
-      useFactory: (
-        config:    ConfigService,
-        s3:        S3StorageProvider,
-        local:     LocalStorageProvider,
-      ) => {
-        const provider = config.get<string>('STORAGE_PROVIDER') ?? 'local';
-
-        if (provider === 's3') {
-          return s3;
-        }
-
-        if (provider === 'local') {
-          return local;
-        }
-
-        throw new Error(
-          `Unknown STORAGE_PROVIDER="${provider}". ` +
-          `Valid values are "local" and "s3".`,
-        );
-      },
+      provide: STORAGE_PROVIDER,
+      inject: [ConfigService],
+      useFactory: createStorageProvider,
     },
   ],
   exports: [STORAGE_PROVIDER],
