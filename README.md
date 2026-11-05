@@ -27,7 +27,7 @@ npm run prisma:seed
 npm run start:dev
 ```
 
-The API defaults to `http://localhost:3001/api/v1`; Swagger is available at `http://localhost:3001/docs`.
+The API defaults to `http://localhost:3001/api/v1`; Swagger is available at `http://localhost:3001/docs`. The production entry point is `dist/src/main.js` (`npm run start:prod`).
 
 ## Environment
 
