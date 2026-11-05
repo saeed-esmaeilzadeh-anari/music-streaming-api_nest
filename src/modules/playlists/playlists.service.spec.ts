@@ -67,7 +67,7 @@ describe('PlaylistsService', () => {
 
     const result = await service.create(ownerId, {
       title: 'Test playlist',
-      visibility: 'PRIVATE',
+      visibility: PlaylistVisibilityDto.PRIVATE,
     });
 
     expect(repository.create).toHaveBeenCalledWith(expect.objectContaining({
