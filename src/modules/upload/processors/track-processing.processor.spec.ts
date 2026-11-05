@@ -33,7 +33,7 @@ describe('TrackProcessingProcessor', () => {
     $transaction: jest.Mock;
   };
   let storage: jest.Mocked<IStorageProvider>;
-  let config: jest.Mocked<Pick<ConfigService, 'get'>>;
+  let config: { get: jest.Mock };
   let eventEmitter: jest.Mocked<Pick<EventEmitter2, 'emit'>>;
   let processor: TrackProcessingProcessor;
 
