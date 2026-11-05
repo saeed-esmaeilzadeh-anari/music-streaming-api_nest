@@ -26,8 +26,11 @@ export class NotificationsController {
 
   @Patch(':id/read')
   @ApiOperation({ summary: 'Mark a single notification as read' })
-  markRead(@Param('id', ParseUUIDPipe) id: string) {
-    return this.notificationsService.markRead(id);
+  markRead(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser('id') userId: string,
+  ) {
+    return this.notificationsService.markRead(id, userId);
   }
 
   @Patch('read-all')
