@@ -25,6 +25,11 @@ export class LikesService {
       throw new ConflictException('You have already liked this item.');
     }
 
+    const targetOwnerId = await this.likesRepository.findTargetOwnerId(dto.targetType, dto.targetId);
+    if (!targetOwnerId) {
+      throw new NotFoundException('The item you are trying to like was not found.');
+    }
+
     const relationKey = TARGET_RELATION_KEY[dto.targetType];
     const like = await this.likesRepository.create({
       user: { connect: { id: userId } },
@@ -34,7 +39,7 @@ export class LikesService {
 
     this.eventEmitter.emit(
       DOMAIN_EVENTS.LIKE_CREATED,
-      new LikeCreatedEvent(userId, dto.targetType, dto.targetId, null),
+      new LikeCreatedEvent(userId, dto.targetType, dto.targetId, targetOwnerId),
     );
 
     return plainToInstance(LikeResponseDto, like, { excludeExtraneousValues: true });
