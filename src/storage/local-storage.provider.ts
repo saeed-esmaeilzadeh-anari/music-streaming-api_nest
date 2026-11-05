@@ -42,8 +42,6 @@ export class LocalStorageProvider implements IStorageProvider {
     this.logger.log(
       `LocalStorageProvider initialised — dir: ${this.baseDir}, url: ${this.baseUrl}`,
     );
-    console.log('LOCAL STORAGE DIR:', this.baseDir);
-    console.log('LOCAL STORAGE URL:', this.baseUrl);
   }
 
   /** Resolve a storage key to an absolute filesystem path */
@@ -56,14 +54,10 @@ export class LocalStorageProvider implements IStorageProvider {
   async upload(key: string, buffer: Buffer, _mimeType: string): Promise<string> {
     const dest = this.resolve(key);
 
-    console.log('LOCAL UPLOAD KEY:', key);
-    console.log('LOCAL UPLOAD DEST:', dest);
-    console.log('LOCAL UPLOAD SIZE:', buffer.length);
 
     await fs.mkdir(path.dirname(dest), { recursive: true });
     await fs.writeFile(dest, buffer);
 
-    console.log('LOCAL FILE WRITTEN:', dest);
     this.logger.debug(`Saved file locally: ${dest}`);
     return key;
   }
