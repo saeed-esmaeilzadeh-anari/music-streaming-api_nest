@@ -105,7 +105,7 @@ async function main() {
 
     const rotated = await request('POST', '/auth/refresh', {
       body: { refreshToken },
-      expected: [200, 201],
+      expected: [200],
     });
     accessToken = rotated.data.accessToken;
     refreshToken = rotated.data.refreshToken;
