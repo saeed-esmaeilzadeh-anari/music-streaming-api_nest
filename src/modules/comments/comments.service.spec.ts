@@ -3,6 +3,7 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 import { PaginationQueryDto } from '../../common/dto/pagination-query.dto';
 import { CommentsRepository } from './repositories/comments.repository';
 import { CommentsService } from './comments.service';
+import { CommentTargetTypeDto } from './dto/create-comment.dto';
 
 describe('CommentsService', () => {
   const userId = 'user-1';
@@ -24,7 +25,7 @@ describe('CommentsService', () => {
     id: commentId,
     userId,
     content: 'A comment',
-    targetType: 'TRACK',
+    targetType: CommentTargetTypeDto.TRACK,
     trackId,
     parentId: null,
     isEdited: false,
@@ -52,13 +53,13 @@ describe('CommentsService', () => {
 
     const result = await service.create(userId, {
       content: 'A comment',
-      targetType: 'TRACK',
+      targetType: CommentTargetTypeDto.TRACK,
       targetId: trackId,
     });
 
     expect(repository.create).toHaveBeenCalledWith(expect.objectContaining({
       content: 'A comment',
-      targetType: 'TRACK',
+      targetType: CommentTargetTypeDto.TRACK,
       user: { connect: { id: userId } },
       track: { connect: { id: trackId } },
     }));
@@ -71,7 +72,7 @@ describe('CommentsService', () => {
 
     await expect(service.create(userId, {
       content: 'A reply',
-      targetType: 'TRACK',
+      targetType: CommentTargetTypeDto.TRACK,
       targetId: trackId,
       parentId: 'missing-parent',
     })).rejects.toBeInstanceOf(NotFoundException);
@@ -119,7 +120,7 @@ describe('CommentsService', () => {
     const result = await service.findByTarget('TRACK', trackId, query);
 
     expect(repository.findByTarget).toHaveBeenCalledWith({
-      targetType: 'TRACK',
+      targetType: CommentTargetTypeDto.TRACK,
       targetId: trackId,
       skip: 0,
       take: 10,
