@@ -21,6 +21,12 @@ export interface IStorageProvider {
   upload(key: string, buffer: Buffer, mimeType: string): Promise<string>;
 
   /**
+   * Create a short-lived presigned PUT URL when the provider supports direct browser uploads.
+   * Local storage omits this capability and uses the authenticated API's local PUT route.
+   */
+  presignPutUrl?(key: string, expiresIn: number): Promise<string>;
+
+  /**
    * Return a URL the client can use to GET the stored file.
    *
    * For S3:    a time-limited presigned GET URL.
