@@ -1,4 +1,4 @@
-import { ForbiddenException, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, NotFoundException } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { PaginationQueryDto } from '../../common/dto/pagination-query.dto';
 import { CommentsRepository } from './repositories/comments.repository';
@@ -17,6 +17,7 @@ describe('CommentsService', () => {
     delete: jest.Mock;
     findByTarget: jest.Mock;
     countByTarget: jest.Mock;
+    findTargetOwnerId: jest.Mock;
   };
   let events: { emit: jest.Mock };
   let service: CommentsService;
@@ -40,6 +41,7 @@ describe('CommentsService', () => {
       delete: jest.fn(),
       findByTarget: jest.fn(),
       countByTarget: jest.fn(),
+      findTargetOwnerId: jest.fn().mockResolvedValue('artist-owner'),
     };
     events = { emit: jest.fn() };
     service = new CommentsService(
@@ -65,6 +67,37 @@ describe('CommentsService', () => {
     }));
     expect(result).toMatchObject({ id: commentId, userId, content: 'A comment' });
     expect(events.emit).toHaveBeenCalledTimes(1);
+    expect(events.emit.mock.calls[0][1]).toMatchObject({ targetOwnerId: 'artist-owner' });
+  });
+
+  it('rejects a reply when the parent comment belongs to a different target', async () => {
+    repository.findById.mockResolvedValue({
+      ...comment,
+      trackId: 'another-track',
+    });
+
+    await expect(service.create(userId, {
+      content: 'A reply',
+      targetType: CommentTargetTypeDto.TRACK,
+      targetId: trackId,
+      parentId: commentId,
+    })).rejects.toBeInstanceOf(BadRequestException);
+
+    expect(repository.findTargetOwnerId).not.toHaveBeenCalled();
+    expect(repository.create).not.toHaveBeenCalled();
+  });
+
+  it('does not create a comment for a missing content target', async () => {
+    repository.findTargetOwnerId.mockResolvedValue(null);
+
+    await expect(service.create(userId, {
+      content: 'A comment',
+      targetType: CommentTargetTypeDto.TRACK,
+      targetId: trackId,
+    })).rejects.toBeInstanceOf(NotFoundException);
+
+    expect(repository.create).not.toHaveBeenCalled();
+    expect(events.emit).not.toHaveBeenCalled();
   });
 
   it('requires an existing parent comment before creating a reply', async () => {
