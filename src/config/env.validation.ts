@@ -7,7 +7,6 @@ import {
   IsOptional,
   IsString,
   Min,
-  MinLength,
   ValidateIf,
   validateSync,
 } from 'class-validator';
@@ -49,8 +48,6 @@ class EnvironmentVariables {
 
   @IsString()
   @IsNotEmpty()
-  @ValidateIf((env: EnvironmentVariables) => env.NODE_ENV === NodeEnv.Production)
-  @MinLength(32)
   JWT_ACCESS_SECRET: string;
 
   @IsString()
@@ -58,8 +55,6 @@ class EnvironmentVariables {
 
   @IsString()
   @IsNotEmpty()
-  @ValidateIf((env: EnvironmentVariables) => env.NODE_ENV === NodeEnv.Production)
-  @MinLength(32)
   JWT_REFRESH_SECRET: string;
 
   @IsString()
@@ -197,6 +192,15 @@ export function validateEnv(config: Record<string, unknown>) {
       .map((error) => `${error.property}: ${Object.values(error.constraints ?? {}).join(', ')}`)
       .join('; ');
     throw new Error(`Environment validation failed: ${messages}`);
+  }
+
+  if (validatedConfig.NODE_ENV === NodeEnv.Production) {
+    for (const key of ['JWT_ACCESS_SECRET', 'JWT_REFRESH_SECRET'] as const) {
+      const secret = validatedConfig[key];
+      if (typeof secret !== 'string' || secret.length < 32) {
+        throw new Error(`Environment validation failed: ${key} must contain at least 32 characters in production`);
+      }
+    }
   }
 
   return validatedConfig;
