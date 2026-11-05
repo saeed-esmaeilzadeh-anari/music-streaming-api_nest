@@ -68,6 +68,18 @@ describe('LikesService', () => {
     expect(events.emit).not.toHaveBeenCalled();
   });
 
+  it('rejects likes for targets that do not exist', async () => {
+    repository.findOne.mockResolvedValue(null);
+    repository.findTargetOwnerId.mockResolvedValue(null);
+
+    await expect(service.like(userId, {
+      targetType: LikeTargetTypeDto.TRACK,
+      targetId: trackId,
+    })).rejects.toBeInstanceOf(NotFoundException);
+
+    expect(repository.create).not.toHaveBeenCalled();
+  });
+
   it('rejects duplicate likes', async () => {
     repository.findOne.mockResolvedValue({ id: 'like-1' });
 
