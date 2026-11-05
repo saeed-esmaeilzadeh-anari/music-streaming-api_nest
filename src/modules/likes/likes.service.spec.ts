@@ -12,6 +12,7 @@ describe('LikesService', () => {
     create: jest.Mock;
     delete: jest.Mock;
     countForTarget: jest.Mock;
+    findTargetOwnerId: jest.Mock;
   };
   let events: { emit: jest.Mock };
   let service: LikesService;
@@ -22,6 +23,7 @@ describe('LikesService', () => {
       create: jest.fn(),
       delete: jest.fn(),
       countForTarget: jest.fn(),
+      findTargetOwnerId: jest.fn(),
     };
     events = { emit: jest.fn() };
     service = new LikesService(
@@ -32,6 +34,7 @@ describe('LikesService', () => {
 
   it('creates a TRACK relation with the authenticated user and emits an event', async () => {
     repository.findOne.mockResolvedValue(null);
+    repository.findTargetOwnerId.mockResolvedValue('artist-owner');
     repository.create.mockResolvedValue({
       id: 'like-1',
       userId,
@@ -49,6 +52,20 @@ describe('LikesService', () => {
     });
     expect(result).toMatchObject({ id: 'like-1', targetType: 'TRACK' });
     expect(events.emit).toHaveBeenCalledTimes(1);
+    expect(events.emit.mock.calls[0][1]).toMatchObject({ targetOwnerId: 'artist-owner' });
+  });
+
+  it('rejects likes for missing targets', async () => {
+    repository.findOne.mockResolvedValue(null);
+    repository.findTargetOwnerId.mockResolvedValue(null);
+
+    await expect(service.like(userId, {
+      targetType: LikeTargetTypeDto.TRACK,
+      targetId: trackId,
+    })).rejects.toBeInstanceOf(NotFoundException);
+
+    expect(repository.create).not.toHaveBeenCalled();
+    expect(events.emit).not.toHaveBeenCalled();
   });
 
   it('rejects duplicate likes', async () => {
