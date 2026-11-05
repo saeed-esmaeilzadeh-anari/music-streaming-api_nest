@@ -6,6 +6,7 @@ import {
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { PlaylistsService } from './playlists.service';
 import { PlaylistsRepository } from './repositories/playlists.repository';
+import { PlaylistVisibilityDto } from './dto/create-playlist.dto';
 
 describe('PlaylistsService', () => {
   const ownerId = 'owner-1';
@@ -35,7 +36,7 @@ describe('PlaylistsService', () => {
     title: 'Test playlist',
     description: null,
     coverUrl: null,
-    visibility: 'PRIVATE',
+    visibility: PlaylistVisibilityDto.PRIVATE,
     createdAt: new Date(),
     tracks: [],
   };
