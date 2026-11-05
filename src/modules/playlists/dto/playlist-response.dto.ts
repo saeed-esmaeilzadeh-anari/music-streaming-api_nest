@@ -58,6 +58,6 @@ export class PlaylistResponseDto {
 
   @Expose()
   @Type(() => PlaylistTrackEntryResponseDto)
-  @ApiProperty({ type: [PlaylistTrackEntryResponseDto] })
-  tracks: PlaylistTrackEntryResponseDto[];
+  @ApiProperty({ type: [PlaylistTrackEntryResponseDto], required: false })
+  tracks?: PlaylistTrackEntryResponseDto[];
 }
