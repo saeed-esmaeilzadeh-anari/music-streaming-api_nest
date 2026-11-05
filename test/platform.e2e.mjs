@@ -261,6 +261,50 @@ async function main() {
       expected: [204],
     });
 
+    const secondUserComment = await request('POST', '/comments', {
+      token: secondRegistration.data.accessToken,
+      body: {
+        targetType: 'TRACK',
+        targetId: trackId,
+        content: 'A comment from another listener to verify owner notifications.',
+      },
+      expected: [201],
+    });
+    assert.ok(secondUserComment.data.id);
+
+    await request('POST', '/likes', {
+      token: secondRegistration.data.accessToken,
+      body: { targetType: 'TRACK', targetId: trackId },
+      expected: [201],
+    });
+
+    let ownerNotifications = [];
+    for (let attempt = 0; attempt < 30; attempt += 1) {
+      const notificationPage = await request('GET', '/notifications?page=1&limit=20', {
+        token: accessToken,
+      });
+      ownerNotifications = notificationPage.data.items ?? [];
+      const hasLike = ownerNotifications.some((item) => item.type === 'LIKE_RECEIVED');
+      const hasComment = ownerNotifications.some((item) => item.type === 'COMMENT_REPLY');
+      if (hasLike && hasComment) break;
+      await new Promise((resolve) => setTimeout(resolve, 250));
+    }
+
+    const likeNotification = ownerNotifications.find((item) => item.type === 'LIKE_RECEIVED');
+    const commentNotification = ownerNotifications.find((item) => item.type === 'COMMENT_REPLY');
+    assert.ok(likeNotification, 'another user liking the track must notify the artist owner');
+    assert.ok(commentNotification, 'another user commenting on the track must notify the artist owner');
+
+    await request('PATCH', `/notifications/${likeNotification.id}/read`, {
+      token: secondRegistration.data.accessToken,
+      expected: [404],
+    });
+    const readNotification = await request('PATCH', `/notifications/${likeNotification.id}/read`, {
+      token: accessToken,
+      expected: [200],
+    });
+    assert.equal(readNotification.data.isRead, true, 'only the notification owner can mark it as read');
+
     const unreadNotifications = await request('GET', '/notifications/unread-count', {
       token: accessToken,
     });
@@ -344,6 +388,7 @@ async function main() {
         'favorites add/list/remove',
         'likes add/count/remove',
         'comments create/list/delete',
+        'like/comment owner notification delivery and owner-only read authorization',
         'notifications unread-count query',
         'private playlist access control and ordered nested track response',
         'catalog search',
