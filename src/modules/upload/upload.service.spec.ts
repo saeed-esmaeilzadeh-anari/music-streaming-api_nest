@@ -29,7 +29,7 @@ describe('UploadService', () => {
       update: jest.Mock;
     };
   };
-  let config: jest.Mocked<Pick<ConfigService, 'get'>>;
+  let config: { get: jest.Mock };
   let storage: jest.Mocked<IStorageProvider>;
   let queue: jest.Mocked<Pick<Queue, 'add'>>;
   let service: UploadService;
