@@ -197,6 +197,20 @@ async function main() {
       expected: [204],
     });
 
+    // The listening-history subscriber is asynchronous; poll for its persisted event.
+    let historyItems = [];
+    for (let attempt = 0; attempt < 20; attempt += 1) {
+      const history = await request('GET', '/listening-history?page=1&limit=20', {
+        token: accessToken,
+      });
+      historyItems = history.data.items ?? [];
+      if (historyItems.some((entry) => entry.trackId === trackId)) break;
+      await new Promise((resolve) => setTimeout(resolve, 250));
+    }
+    const historyEntry = historyItems.find((entry) => entry.trackId === trackId);
+    assert.ok(historyEntry, 'play event must be persisted in listening history');
+    assert.equal(historyEntry.completed, true, 'a 30-second listen must be marked completed');
+
     await request('POST', '/favorites', {
       token: accessToken,
       body: { trackId },
@@ -209,21 +223,70 @@ async function main() {
     );
     await request('DELETE', `/favorites/${trackId}`, { token: accessToken, expected: [204] });
 
+    const like = await request('POST', '/likes', {
+      token: accessToken,
+      body: { targetType: 'TRACK', targetId: trackId },
+      expected: [201],
+    });
+    assert.equal(like.data.targetType, 'TRACK');
+    const likeCount = await request(
+      'GET',
+      `/likes/count?targetType=TRACK&targetId=${encodeURIComponent(trackId)}`,
+    );
+    assert.ok(Number(likeCount.data) >= 1, 'track like count must increase');
+    await request('DELETE', `/likes?targetType=TRACK&targetId=${encodeURIComponent(trackId)}`, {
+      token: accessToken,
+      expected: [204],
+    });
+
+    const comment = await request('POST', '/comments', {
+      token: accessToken,
+      body: {
+        targetType: 'TRACK',
+        targetId: trackId,
+        content: 'A real integration-test comment.',
+      },
+      expected: [201],
+    });
+    const comments = await request(
+      'GET',
+      `/comments?targetType=TRACK&targetId=${encodeURIComponent(trackId)}&page=1&limit=20`,
+    );
+    assert.ok(
+      (comments.data.items ?? []).some((entry) => entry.id === comment.data.id),
+      'public track comments must include the created comment',
+    );
+    await request('DELETE', `/comments/${comment.data.id}`, {
+      token: accessToken,
+      expected: [204],
+    });
+
+    const unreadNotifications = await request('GET', '/notifications/unread-count', {
+      token: accessToken,
+    });
+    assert.equal(typeof unreadNotifications.data.count, 'number');
+
     const playlist = await request('POST', '/playlists', {
       token: accessToken,
-      body: { title: `E2E playlist ${username}`, visibility: 'PUBLIC' },
+      body: { title: `E2E playlist ${username}`, visibility: 'PRIVATE' },
       expected: [201],
+    });
+    await request('GET', `/playlists/${playlist.data.id}`, {
+      token: secondRegistration.data.accessToken,
+      expected: [403],
     });
     await request('POST', `/playlists/${playlist.data.id}/tracks`, {
       token: accessToken,
       body: { trackId },
       expected: [201],
     });
-    const playlistRead = await request('GET', `/playlists/${playlist.data.id}`);
+    const playlistRead = await request('GET', `/playlists/${playlist.data.id}`, {
+      token: accessToken,
+    });
     const playlistTracks = playlistRead.data.tracks ?? [];
     assert.ok(
       playlistTracks.some((entry) => (entry.track?.id ?? entry.trackId) === trackId),
-      'playlist must include the newly added track',
+      'playlist API response must include the ordered nested track entry',
     );
 
     const search = await request('GET', `/search?q=${encodeURIComponent(username)}`);
@@ -270,9 +333,12 @@ async function main() {
         'local binary upload and confirmation',
         'BullMQ + ffprobe processing publishes a real audio track',
         'stable audio endpoint streams non-empty audio bytes',
-        'play event registration',
+        'play event and asynchronous listening-history persistence',
         'favorites add/list/remove',
-        'playlist create/add/read',
+        'likes add/count/remove',
+        'comments create/list/delete',
+        'notifications unread-count query',
+        'private playlist access control and ordered nested track response',
         'catalog search',
         'admin login, user listing, and genre management',
         'logout revokes the refresh token',
