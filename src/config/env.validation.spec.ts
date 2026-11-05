@@ -40,6 +40,11 @@ describe('validateEnv', () => {
     expect(config.STORAGE_PROVIDER).toBe('s3');
   });
 
+  it('requires JWT secrets in development too', () => {
+    const { JWT_ACCESS_SECRET: _access, ...missingAccess } = localEnvironment;
+    expect(() => validateEnv(missingAccess)).toThrow(/JWT_ACCESS_SECRET/);
+  });
+
   it('requires long independent JWT secrets in production', () => {
     expect(() =>
       validateEnv({
