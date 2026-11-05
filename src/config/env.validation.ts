@@ -201,6 +201,9 @@ export function validateEnv(config: Record<string, unknown>) {
         throw new Error(`Environment validation failed: ${key} must contain at least 32 characters in production`);
       }
     }
+    if (validatedConfig.JWT_ACCESS_SECRET === validatedConfig.JWT_REFRESH_SECRET) {
+      throw new Error('Environment validation failed: JWT access and refresh secrets must be different in production');
+    }
   }
 
   return validatedConfig;
