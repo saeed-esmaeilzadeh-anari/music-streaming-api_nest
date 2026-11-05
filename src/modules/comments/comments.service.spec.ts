@@ -100,6 +100,18 @@ describe('CommentsService', () => {
     expect(events.emit).not.toHaveBeenCalled();
   });
 
+  it('rejects comments for a target that does not exist', async () => {
+    repository.findTargetOwnerId.mockResolvedValue(null);
+
+    await expect(service.create(userId, {
+      content: 'A comment',
+      targetType: CommentTargetTypeDto.TRACK,
+      targetId: trackId,
+    })).rejects.toBeInstanceOf(NotFoundException);
+
+    expect(repository.create).not.toHaveBeenCalled();
+  });
+
   it('requires an existing parent comment before creating a reply', async () => {
     repository.findById.mockResolvedValue(null);
 
