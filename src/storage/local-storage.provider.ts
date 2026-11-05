@@ -75,8 +75,13 @@ export class LocalStorageProvider implements IStorageProvider {
     try {
       await fs.unlink(this.resolve(key));
       this.logger.debug(`Deleted local file: ${key}`);
-    } catch (err: any) {
-      if (err?.code !== 'ENOENT') throw err;
+    } catch (error: unknown) {
+      const isMissingFile =
+        typeof error === 'object' &&
+        error !== null &&
+        'code' in error &&
+        error.code === 'ENOENT';
+      if (!isMissingFile) throw error;
     }
   }
 
