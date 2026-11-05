@@ -300,7 +300,7 @@ async function main() {
     assert.ok(search.data, 'search endpoint must return a response');
 
     const adminLogin = await request('POST', '/auth/login', {
-      body: { email: 'admin@musicstream.dev', password: 'Admin@12345' },
+      body: { email: 'admin@musicstream.dev', password: process.env.SEED_ADMIN_PASSWORD ?? 'Admin@12345' },
       expected: [200],
     });
     assert.equal(adminLogin.data.user.role, 'ADMIN');
