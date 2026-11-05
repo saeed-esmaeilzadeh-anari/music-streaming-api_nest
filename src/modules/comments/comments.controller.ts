@@ -14,8 +14,7 @@ import {
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { CommentsService } from './comments.service';
-import { CreateCommentDto, UpdateCommentDto, CommentResponseDto } from './dto';
-import { PaginationQueryDto } from '../../common/dto/pagination-query.dto';
+import { CreateCommentDto, UpdateCommentDto, CommentResponseDto, FindCommentsQueryDto } from './dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser, Public } from '../../common/decorators';
 import { AuthenticatedUser } from '../auth/types/authenticated-user.type';
@@ -38,12 +37,8 @@ export class CommentsController {
   @Public()
   @Get()
   @ApiOperation({ summary: 'List top-level comments for a target' })
-  findByTarget(
-    @Query('targetType') targetType: string,
-    @Query('targetId', ParseUUIDPipe) targetId: string,
-    @Query() query: PaginationQueryDto,
-  ) {
-    return this.commentsService.findByTarget(targetType, targetId, query);
+  findByTarget(@Query() query: FindCommentsQueryDto) {
+    return this.commentsService.findByTarget(query.targetType, query.targetId, query);
   }
 
   @ApiBearerAuth()
