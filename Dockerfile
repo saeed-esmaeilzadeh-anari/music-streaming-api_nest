@@ -1,7 +1,7 @@
 # ---------- Base ----------
 FROM node:20-alpine AS base
 WORKDIR /usr/src/app
-RUN apk add --no-cache openssl
+RUN apk add --no-cache openssl ffmpeg
 
 # ---------- Development ----------
 FROM base AS development
@@ -27,7 +27,7 @@ RUN npm prune --omit=dev
 FROM node:20-alpine AS production
 ENV NODE_ENV=production
 WORKDIR /usr/src/app
-RUN apk add --no-cache openssl
+RUN apk add --no-cache openssl ffmpeg
 COPY --from=build /usr/src/app/node_modules ./node_modules
 COPY --from=build /usr/src/app/dist ./dist
 COPY --from=build /usr/src/app/prisma ./prisma
