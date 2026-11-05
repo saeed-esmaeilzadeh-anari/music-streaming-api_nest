@@ -271,10 +271,17 @@ async function main() {
       body: { title: `E2E playlist ${username}`, visibility: 'PRIVATE' },
       expected: [201],
     });
+    await request('GET', `/playlists/${playlist.data.id}`, { expected: [403] });
     await request('GET', `/playlists/${playlist.data.id}`, {
       token: secondRegistration.data.accessToken,
       expected: [403],
     });
+    const ownerPrivatePlaylist = await request('GET', `/playlists/${playlist.data.id}`, {
+      token: accessToken,
+      expected: [200],
+    });
+    assert.equal(ownerPrivatePlaylist.data.id, playlist.data.id);
+
     await request('POST', `/playlists/${playlist.data.id}/tracks`, {
       token: accessToken,
       body: { trackId },
