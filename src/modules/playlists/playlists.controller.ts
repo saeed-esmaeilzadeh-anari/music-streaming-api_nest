@@ -23,6 +23,7 @@ import {
 } from './dto';
 import { PaginationQueryDto } from '../../common/dto/pagination-query.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { OptionalJwtAuthGuard } from '../auth/guards/optional-jwt-auth.guard';
 import { CurrentUser, Public } from '../../common/decorators';
 
 @ApiTags('Playlists')
@@ -48,6 +49,7 @@ export class PlaylistsController {
   }
 
   @Public()
+  @UseGuards(OptionalJwtAuthGuard)
   @Get(':id')
   @ApiOperation({ summary: 'Get a playlist by id (private playlists require ownership)' })
   @ApiResponse({ status: 200, type: PlaylistResponseDto })
