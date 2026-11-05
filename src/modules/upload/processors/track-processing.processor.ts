@@ -1,5 +1,8 @@
+import { execFile } from 'node:child_process';
+import { promisify } from 'node:util';
+
+import { Inject, Logger } from '@nestjs/common';
 import { Processor, WorkerHost, OnWorkerEvent } from '@nestjs/bullmq';
-import { Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Job } from 'bullmq';
 import { EventEmitter2 } from '@nestjs/event-emitter';
@@ -8,6 +11,11 @@ import { QUEUE_NAMES, TRACK_PROCESSING_JOBS } from '../../../queue/queue.constan
 import { TracksRepository } from '../../tracks/repositories/tracks.repository';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { DOMAIN_EVENTS, TrackProcessingCompletedEvent } from '../../../events';
+import { IStorageProvider, STORAGE_PROVIDER } from '../../../storage/storage.interface';
+
+const execFileAsync = promisify(execFile);
+const FFMPEG_PROBE_TIMEOUT_MS = 60_000;
+const SIGNED_MEDIA_URL_TTL_SECONDS = 5 * 60;
 
 interface TrackProcessingJobData {
   uploadId: string;
@@ -16,18 +24,11 @@ interface TrackProcessingJobData {
 }
 
 /**
- * TrackProcessingProcessor
+ * Processes uploaded audio with the system ffprobe binary.
  *
- * Consumes jobs from the `track-processing` queue.
- *
- * Uses IStorageProvider (not S3Service directly) so it works with both
- * LocalStorageProvider (STORAGE_PROVIDER=local) and S3StorageProvider
- * (STORAGE_PROVIDER=s3) without any code change.
- *
- * audioUrl generation:
- *   local → http://localhost:3001/uploads/tracks/audio/<uuid>.mp3
- *   s3    → https://bucket.s3.amazonaws.com/tracks/audio/<uuid>.mp3
- *           (or MinIO: http://localhost:9000/soundwave/tracks/audio/<uuid>.mp3)
+ * The worker requires ffprobe to be installed in its runtime image. The media
+ * is read through the configured storage provider, so local and S3-compatible
+ * storage use the same processing path. A failed probe never publishes a track.
  */
 @Processor(QUEUE_NAMES.TRACK_PROCESSING)
 export class TrackProcessingProcessor extends WorkerHost {
@@ -38,6 +39,7 @@ export class TrackProcessingProcessor extends WorkerHost {
     private readonly tracksRepository: TracksRepository,
     private readonly config: ConfigService,
     private readonly eventEmitter: EventEmitter2,
+    @Inject(STORAGE_PROVIDER) private readonly storage: IStorageProvider,
   ) {
     super();
   }
@@ -52,33 +54,28 @@ export class TrackProcessingProcessor extends WorkerHost {
   }
 
   private async extractMetadata(job: Job<TrackProcessingJobData>): Promise<void> {
-    const { uploadId, trackId } = job.data;
+    const { uploadId, trackId, s3Key } = job.data;
     this.logger.log(`Processing upload ${uploadId} for track ${trackId}`);
 
-    // Mark upload as PROCESSING
     await this.prisma.upload.update({
       where: { id: uploadId },
       data: { status: 'PROCESSING' },
     });
 
     try {
-      // Store a stable backend URL instead of a time-limited S3 URL.
-      // The endpoint redirects to a freshly signed storage URL for each playback request.
+      const mediaUrl = await this.storage.getSignedUrl(s3Key, SIGNED_MEDIA_URL_TTL_SECONDS);
+      const durationSec = await this.extractDuration(mediaUrl);
       const audioUrl = this.getStableAudioUrl(trackId);
 
-      // Placeholder for real audio metadata extraction (ffprobe/ffmpeg).
-      const durationSec = await this.simulateDurationExtraction();
-
-      // Mark the upload READY before publishing the track so playback can resolve its object.
-      await this.prisma.upload.update({
-        where: { id: uploadId },
-        data: { status: 'READY' },
-      });
-
-      await this.tracksRepository.update(trackId, {
-        audioUrl,
-        durationSec,
-        status: 'PUBLISHED',
+      await this.prisma.$transaction(async (transaction) => {
+        await transaction.upload.update({
+          where: { id: uploadId },
+          data: { status: 'READY', failureReason: null },
+        });
+        await transaction.track.update({
+          where: { id: trackId },
+          data: { audioUrl, durationSec, status: 'PUBLISHED' },
+        });
       });
 
       this.eventEmitter.emit(
@@ -86,24 +83,62 @@ export class TrackProcessingProcessor extends WorkerHost {
         new TrackProcessingCompletedEvent(trackId, durationSec, audioUrl),
       );
 
-      this.logger.log(
-        `Track ${trackId} published — stable audio endpoint saved, duration: ${durationSec}s`,
-      );
+      this.logger.log(`Track ${trackId} published after ffprobe validation (${durationSec}s)`);
     } catch (error) {
-      this.logger.error(`Track processing failed for upload ${uploadId}: ${error}`);
+      const message = error instanceof Error ? error.message : 'Unknown audio processing error';
+      const attempts = Number(job.opts.attempts ?? 1);
+      const isFinalAttempt = job.attemptsMade + 1 >= attempts;
 
-      await this.prisma.upload.update({
-        where: { id: uploadId },
-        data: {
-          status: 'FAILED',
-          failureReason: error instanceof Error ? error.message : 'Unknown error',
-        },
-      });
+      this.logger.error(
+        `Track processing failed for upload ${uploadId} (attempt ${job.attemptsMade + 1}/${attempts}): ${message}`,
+      );
 
-      await this.tracksRepository.update(trackId, { status: 'REJECTED' });
+      // Keep the upload retryable while BullMQ still has attempts remaining.
+      // Only mark the upload and track failed after the final failed attempt.
+      if (isFinalAttempt) {
+        try {
+          await this.prisma.$transaction(async (transaction) => {
+            await transaction.upload.update({
+              where: { id: uploadId },
+              data: { status: 'FAILED', failureReason: message.slice(0, 1000) },
+            });
+            await transaction.track.update({
+              where: { id: trackId },
+              data: { status: 'REJECTED' },
+            });
+          });
+        } catch (persistenceError) {
+          this.logger.error(
+            `Could not persist final processing failure for upload ${uploadId}: ${persistenceError instanceof Error ? persistenceError.message : 'unknown error'}`,
+          );
+        }
+      }
 
-      throw error; // let BullMQ apply its retry/backoff policy
+      throw error;
     }
+  }
+
+  private async extractDuration(mediaUrl: string): Promise<number> {
+    const { stdout } = await execFileAsync(
+      'ffprobe',
+      [
+        '-v',
+        'error',
+        '-show_entries',
+        'format=duration',
+        '-of',
+        'default=noprint_wrappers=1:nokey=1',
+        mediaUrl,
+      ],
+      { timeout: FFMPEG_PROBE_TIMEOUT_MS, maxBuffer: 1024 * 1024 },
+    );
+
+    const duration = Number.parseFloat(stdout.trim());
+    if (!Number.isFinite(duration) || duration <= 0) {
+      throw new Error('ffprobe could not determine a valid audio duration');
+    }
+
+    return Math.ceil(duration);
   }
 
   private getStableAudioUrl(trackId: string): string {
@@ -122,11 +157,6 @@ export class TrackProcessingProcessor extends WorkerHost {
     ).replace(/^\/+|\/+$/g, '');
 
     return `${appUrl.replace(/\/+$/g, '')}/${apiPrefix}/uploads/tracks/${trackId}/audio`;
-  }
-
-  /** Replace with real ffprobe output parsing in production. */
-  private async simulateDurationExtraction(): Promise<number> {
-    return 180;
   }
 
   @OnWorkerEvent('failed')

@@ -63,17 +63,6 @@ export class UploadController {
     @Param('uploadId', ParseUUIDPipe) uploadId: string,
     @Req() req: Request & { rawBody?: Buffer; body?: unknown },
   ): Promise<void> {
-    console.log('[LOCAL PUT CONTROLLER HIT]', {
-      uploadId,
-      bodyIsBuffer: Buffer.isBuffer(req.body),
-      rawBodyIsBuffer: Buffer.isBuffer(req.rawBody),
-      bodyLength: Buffer.isBuffer(req.body)
-        ? req.body.length
-        : Buffer.isBuffer(req.rawBody)
-          ? req.rawBody.length
-          : 0,
-    });
-
     const buffer = Buffer.isBuffer(req.body)
       ? req.body
       : Buffer.isBuffer(req.rawBody)
