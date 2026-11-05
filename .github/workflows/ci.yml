@@ -31,7 +31,7 @@ jobs:
       - name: Type-check
         run: npx tsc --noEmit
       - name: Lint (formatting debt reported as warnings)
-        run: npx eslint "{src,apps,libs,test}/**/*.ts" --rule 'prettier/prettier: warn'
+        run: npx eslint "{src,apps,libs,test}/**/*.ts" --rule 'prettier/prettier:warn'
       - name: Build
         run: npm run build
       - name: Unit tests with coverage
