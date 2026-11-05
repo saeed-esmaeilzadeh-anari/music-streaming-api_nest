@@ -1,4 +1,11 @@
-import { Injectable, Inject, NotFoundException, Logger, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  Inject,
+  NotFoundException,
+  Logger,
+  BadRequestException,
+  InternalServerErrorException,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
@@ -77,10 +84,12 @@ export class UploadService {
     const provider = this.config.get<string>('STORAGE_PROVIDER') ?? 'local';
 
     if (provider === 's3') {
-      const s3 = this.storage as any;
-      if (typeof s3.presignPutUrl === 'function') {
-        return s3.presignPutUrl(key, PRESIGN_TTL) as Promise<string>;
+      if (!this.storage.presignPutUrl) {
+        throw new InternalServerErrorException(
+          'The configured S3 storage provider does not support presigned uploads',
+        );
       }
+      return this.storage.presignPutUrl(key, PRESIGN_TTL);
     }
 
     const appUrl = this.config.get<string>('APP_URL') ?? 'http://localhost:3001';

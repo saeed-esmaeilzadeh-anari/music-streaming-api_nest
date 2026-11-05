@@ -1,5 +1,30 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { Exclude, Expose } from 'class-transformer';
+import { Exclude, Expose, Type } from 'class-transformer';
+import { TrackResponseDto } from '../../tracks/dto/track-response.dto';
+
+@Exclude()
+export class PlaylistTrackEntryResponseDto {
+  @Expose()
+  @ApiProperty()
+  id: string;
+
+  @Expose()
+  @ApiProperty()
+  trackId: string;
+
+  @Expose()
+  @ApiProperty()
+  position: number;
+
+  @Expose()
+  @ApiProperty()
+  addedAt: Date;
+
+  @Expose()
+  @Type(() => TrackResponseDto)
+  @ApiProperty({ type: TrackResponseDto })
+  track: TrackResponseDto;
+}
 
 @Exclude()
 export class PlaylistResponseDto {
@@ -30,4 +55,9 @@ export class PlaylistResponseDto {
   @Expose()
   @ApiProperty()
   createdAt: Date;
+
+  @Expose()
+  @Type(() => PlaylistTrackEntryResponseDto)
+  @ApiProperty({ type: [PlaylistTrackEntryResponseDto], required: false })
+  tracks?: PlaylistTrackEntryResponseDto[];
 }

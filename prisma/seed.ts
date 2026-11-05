@@ -4,9 +4,24 @@ import * as bcrypt from 'bcrypt';
 const prisma = new PrismaClient();
 
 async function main() {
+  if (process.env.NODE_ENV === 'production' && process.env.ALLOW_DEMO_SEED !== 'true') {
+    throw new Error('Demo seed is disabled in production. Set ALLOW_DEMO_SEED=true only for a deliberate, isolated seed run.');
+  }
+
+  const adminPasswordPlain =
+    process.env.SEED_ADMIN_PASSWORD ??
+    (process.env.NODE_ENV === 'development' ? 'Admin@12345' : undefined);
+  const artistPasswordPlain =
+    process.env.SEED_ARTIST_PASSWORD ??
+    (process.env.NODE_ENV === 'development' ? 'Artist@12345' : undefined);
+
+  if (!adminPasswordPlain || !artistPasswordPlain) {
+    throw new Error('SEED_ADMIN_PASSWORD and SEED_ARTIST_PASSWORD are required outside development.');
+  }
+
   const saltRounds = 12;
 
-  const adminPassword = await bcrypt.hash('Admin@12345', saltRounds);
+  const adminPassword = await bcrypt.hash(adminPasswordPlain, saltRounds);
   const admin = await prisma.user.upsert({
     where: { email: 'admin@musicstream.dev' },
     update: {},
@@ -22,7 +37,7 @@ async function main() {
     },
   });
 
-  const artistPassword = await bcrypt.hash('Artist@12345', saltRounds);
+  const artistPassword = await bcrypt.hash(artistPasswordPlain, saltRounds);
   const artistUser = await prisma.user.upsert({
     where: { email: 'artist@musicstream.dev' },
     update: {},

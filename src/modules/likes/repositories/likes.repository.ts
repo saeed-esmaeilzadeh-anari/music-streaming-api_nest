@@ -24,6 +24,41 @@ export class LikesRepository {
     });
   }
 
+  async findTargetOwnerId(targetType: string, targetId: string): Promise<string | null> {
+    switch (targetType) {
+      case 'TRACK': {
+        const target = await this.prisma.track.findUnique({
+          where: { id: targetId },
+          select: { artist: { select: { userId: true } } },
+        });
+        return target?.artist.userId ?? null;
+      }
+      case 'ALBUM': {
+        const target = await this.prisma.album.findUnique({
+          where: { id: targetId },
+          select: { artist: { select: { userId: true } } },
+        });
+        return target?.artist.userId ?? null;
+      }
+      case 'PLAYLIST': {
+        const target = await this.prisma.playlist.findUnique({
+          where: { id: targetId },
+          select: { ownerId: true },
+        });
+        return target?.ownerId ?? null;
+      }
+      case 'COMMENT': {
+        const target = await this.prisma.comment.findUnique({
+          where: { id: targetId },
+          select: { userId: true },
+        });
+        return target?.userId ?? null;
+      }
+      default:
+        return null;
+    }
+  }
+
   delete(id: string): Promise<Like> {
     return this.prisma.like.delete({ where: { id } });
   }

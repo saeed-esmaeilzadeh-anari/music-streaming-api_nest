@@ -22,6 +22,34 @@ export class CommentsRepository {
     return this.prisma.comment.delete({ where: { id } });
   }
 
+  async findTargetOwnerId(targetType: string, targetId: string): Promise<string | null> {
+    switch (targetType) {
+      case 'TRACK': {
+        const target = await this.prisma.track.findUnique({
+          where: { id: targetId },
+          select: { artist: { select: { userId: true } } },
+        });
+        return target?.artist.userId ?? null;
+      }
+      case 'ALBUM': {
+        const target = await this.prisma.album.findUnique({
+          where: { id: targetId },
+          select: { artist: { select: { userId: true } } },
+        });
+        return target?.artist.userId ?? null;
+      }
+      case 'PLAYLIST': {
+        const target = await this.prisma.playlist.findUnique({
+          where: { id: targetId },
+          select: { ownerId: true },
+        });
+        return target?.ownerId ?? null;
+      }
+      default:
+        return null;
+    }
+  }
+
   async findByTarget(params: {
     targetType: string;
     targetId: string;

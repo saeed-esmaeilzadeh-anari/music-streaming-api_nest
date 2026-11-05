@@ -10,8 +10,14 @@ export class NotificationsRepository {
     return this.prisma.notification.create({ data });
   }
 
-  markRead(id: string): Promise<Notification> {
-    return this.prisma.notification.update({ where: { id }, data: { isRead: true } });
+  async markRead(id: string, userId: string): Promise<Notification | null> {
+    const result = await this.prisma.notification.updateMany({
+      where: { id, userId },
+      data: { isRead: true },
+    });
+    if (result.count === 0) return null;
+
+    return this.prisma.notification.findFirst({ where: { id, userId } });
   }
 
   markAllRead(userId: string): Promise<Prisma.BatchPayload> {

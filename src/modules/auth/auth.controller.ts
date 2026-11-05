@@ -23,6 +23,7 @@ export class AuthController {
   }
 
   @Public()
+  @HttpCode(HttpStatus.OK)
   @Post('login')
   @ApiOperation({ summary: 'Authenticate with email and password' })
   @ApiResponse({ status: 200, type: AuthResponseDto })
@@ -33,6 +34,7 @@ export class AuthController {
 
   @Public()
   @UseGuards(JwtRefreshAuthGuard)
+  @HttpCode(HttpStatus.OK)
   @Post('refresh')
   @ApiOperation({ summary: 'Exchange a valid refresh token for a new token pair' })
   @ApiResponse({ status: 200, type: AuthResponseDto })

@@ -1,4 +1,4 @@
-import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { plainToInstance } from 'class-transformer';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { CommentsRepository } from './repositories/comments.repository';
@@ -28,6 +28,21 @@ export class CommentsService {
       if (!parent) {
         throw new NotFoundException('Parent comment not found.');
       }
+
+      const parentTargetId =
+        dto.targetType === 'TRACK'
+          ? parent.trackId
+          : dto.targetType === 'ALBUM'
+            ? parent.albumId
+            : parent.playlistId;
+      if (parent.targetType !== dto.targetType || parentTargetId !== dto.targetId) {
+        throw new BadRequestException('A reply must belong to the same content as its parent comment.');
+      }
+    }
+
+    const targetOwnerId = await this.commentsRepository.findTargetOwnerId(dto.targetType, dto.targetId);
+    if (!targetOwnerId) {
+      throw new NotFoundException('Comment target not found.');
     }
 
     const comment = await this.commentsRepository.create({
@@ -40,7 +55,7 @@ export class CommentsService {
 
     this.eventEmitter.emit(
       DOMAIN_EVENTS.COMMENT_CREATED,
-      new CommentCreatedEvent(comment.id, userId, dto.targetType, null),
+      new CommentCreatedEvent(comment.id, userId, dto.targetType, targetOwnerId),
     );
 
     return this.toResponseDto(comment);

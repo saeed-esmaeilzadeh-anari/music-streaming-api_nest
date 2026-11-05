@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { plainToInstance } from 'class-transformer';
 import { NotificationsRepository } from './repositories/notifications.repository';
 import { NotificationResponseDto } from './dto';
@@ -33,8 +33,11 @@ export class NotificationsService {
     return { count };
   }
 
-  async markRead(id: string): Promise<NotificationResponseDto> {
-    const notification = await this.notificationsRepository.markRead(id);
+  async markRead(id: string, userId: string): Promise<NotificationResponseDto> {
+    const notification = await this.notificationsRepository.markRead(id, userId);
+    if (!notification) {
+      throw new NotFoundException('Notification not found.');
+    }
     return plainToInstance(NotificationResponseDto, notification, {
       excludeExtraneousValues: true,
     });

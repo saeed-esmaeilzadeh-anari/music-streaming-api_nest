@@ -1,0 +1,112 @@
+name: Platform API Integration E2E
+
+on:
+  push:
+    branches: ["finalize/**"]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  platform-flow:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: music_streaming_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d music_streaming_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    env:
+      NODE_ENV: test
+      PORT: 3001
+      API_PREFIX: api/v1
+      APP_URL: http://127.0.0.1:3001
+      CORS_ORIGINS: http://localhost:3000
+      DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/music_streaming_test?schema=public
+      JWT_ACCESS_SECRET: soundwave-e2e-access-secret-32-characters-minimum
+      JWT_REFRESH_SECRET: soundwave-e2e-refresh-secret-is-independent-32
+      JWT_ACCESS_EXPIRES_IN: 15m
+      JWT_REFRESH_EXPIRES_IN: 7d
+      REDIS_HOST: 127.0.0.1
+      REDIS_PORT: 6379
+      REDIS_DB: 0
+      REDIS_TLS: "false"
+      STORAGE_PROVIDER: local
+      LOCAL_STORAGE_DIR: /tmp/soundwave-e2e-uploads
+      LOCAL_STORAGE_URL: http://127.0.0.1:3001/uploads
+      THROTTLE_TTL_SECONDS: 60
+      THROTTLE_LIMIT: 1000
+      SEED_ADMIN_PASSWORD: S0undwave-E2E-Admin-Pass-2026
+      SEED_ARTIST_PASSWORD: S0undwave-E2E-Artist-Pass-2026
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Ensure media tools are available
+        run: |
+          if ! command -v ffmpeg >/dev/null 2>&1 || ! command -v ffprobe >/dev/null 2>&1; then
+            sudo apt-get update
+            sudo apt-get install --yes --no-install-recommends ffmpeg
+          fi
+          ffmpeg -version
+          ffprobe -version
+      - name: Install dependencies
+        run: npm ci
+      - name: Generate Prisma client
+        run: npx prisma generate
+      - name: Create isolated test schema
+        run: npx prisma db push
+      - name: Seed test-only admin and catalog data
+        run: npm run prisma:seed
+      - name: Build API
+        run: npm run build
+      - name: Start API
+        run: |
+          mkdir -p "$LOCAL_STORAGE_DIR"
+          npm run start:prod > /tmp/soundwave-api-e2e.log 2>&1 &
+          echo $! > /tmp/soundwave-api-e2e.pid
+      - name: Wait for API readiness
+        run: |
+          for attempt in $(seq 1 60); do
+            if curl --fail --silent http://127.0.0.1:3001/api/v1/genres > /dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          cat /tmp/soundwave-api-e2e.log
+          exit 1
+      - name: Run real API end-to-end flow
+        run: npm run test:e2e
+      - name: Print API logs on failure
+        if: failure()
+        run: cat /tmp/soundwave-api-e2e.log
+      - name: Stop API
+        if: always()
+        run: |
+          if [ -f /tmp/soundwave-api-e2e.pid ]; then
+            kill "$(cat /tmp/soundwave-api-e2e.pid)" || true
+          fi

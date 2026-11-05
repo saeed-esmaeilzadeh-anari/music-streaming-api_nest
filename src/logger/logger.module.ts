@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { LoggerModule as PinoLoggerModule } from 'nestjs-pino';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { randomUUID } from 'crypto';
+import type { IncomingMessage } from 'http';
 
 @Module({
   imports: [
@@ -16,7 +17,10 @@ import { randomUUID } from 'crypto';
               config.get<string>('app.env') === 'test'
                 ? 'silent'
                 : (process.env.LOG_LEVEL ?? 'info'),
-            genReqId: (req: any) => req.headers['x-request-id'] ?? randomUUID(),
+            genReqId: (req: IncomingMessage) => {
+              const requestId = req.headers['x-request-id'];
+              return typeof requestId === 'string' ? requestId : randomUUID();
+            },
             transport: isProduction
               ? undefined
               : {

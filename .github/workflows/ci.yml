@@ -12,16 +12,17 @@ permissions:
 jobs:
   verify:
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 30
     env:
-      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/music_streaming?schema=public
+      NODE_ENV: test
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/music_streaming_test?schema=public
     steps:
       - name: Checkout
         uses: actions/checkout@v4
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
       - name: Install dependencies
         run: npm ci
@@ -29,7 +30,9 @@ jobs:
         run: npx prisma generate
       - name: Type-check
         run: npx tsc --noEmit
+      - name: Lint (formatting debt reported as warnings)
+        run: npx eslint "{src,apps,libs,test}/**/*.ts" --rule 'prettier/prettier:warn'
       - name: Build
         run: npm run build
-      - name: Unit tests
-        run: npm test -- --runInBand --passWithNoTests
+      - name: Unit tests with coverage
+        run: npm test -- --runInBand --coverage

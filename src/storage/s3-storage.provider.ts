@@ -81,14 +81,9 @@ export class S3StorageProvider implements IStorageProvider {
   }
 
   async delete(key: string): Promise<void> {
-    try {
-      await this.client.send(
-        new DeleteObjectCommand({ Bucket: this.bucket, Key: key }),
-      );
-      this.logger.debug(`Deleted s3://${this.bucket}/${key}`);
-    } catch (err: any) {
-      if (err?.Code !== 'NoSuchKey') throw err;
-    }
+    // S3 DeleteObject is idempotent for a missing key, so no error cast is needed.
+    await this.client.send(new DeleteObjectCommand({ Bucket: this.bucket, Key: key }));
+    this.logger.debug(`Deleted s3://${this.bucket}/${key}`);
   }
 
   async exists(key: string): Promise<boolean> {

@@ -127,6 +127,10 @@ export class UploadService {
    * Status check ensures the uploadId can only be used once.
    */
   async receiveLocalUpload(uploadId: string, buffer: Buffer): Promise<void> {
+    if (!Buffer.isBuffer(buffer) || buffer.length === 0) {
+      throw new BadRequestException('Uploaded file must contain non-empty binary data');
+    }
+
     const upload = await this.prisma.upload.findUnique({ where: { id: uploadId } });
 
     if (!upload) {
