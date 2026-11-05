@@ -3,6 +3,7 @@ import { LoggerModule as PinoLoggerModule } from 'nestjs-pino';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { randomUUID } from 'crypto';
 import type { IncomingMessage } from 'http';
+import type { IncomingMessage } from 'http';
 
 @Module({
   imports: [
