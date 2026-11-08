@@ -114,9 +114,10 @@ describe('RecommendationsService', () => {
 
     expect(result.coldStart).toBe(false);
     expect(playlistQuery.where.visibility).toBe('PUBLIC');
-    expect(playlistQuery.where.OR).toHaveLength(2);
-    expect(JSON.stringify(playlistQuery.where)).toContain('genre-rock');
-    expect(JSON.stringify(playlistQuery.where)).toContain('genre-pop');
+    expect(playlistQuery.where.OR).toHaveLength(1);
+    expect(playlistQuery.where.OR[0].tracks.some.track.genres.some.genreId.in).toEqual(
+      expect.arrayContaining(['genre-rock', 'genre-pop']),
+    );
   });
 
   it('does not repeat a track across multiple track sections', async () => {
