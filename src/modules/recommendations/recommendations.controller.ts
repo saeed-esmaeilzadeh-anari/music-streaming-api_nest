@@ -2,7 +2,7 @@ import { Controller, Get, Query, UseGuards } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { RecommendationsService } from './recommendations.service';
 import { RecommendationsQueryDto, RecommendationsResponse } from './dto';
-import { CurrentUser } from '../../common/decorators';
+import { CurrentUser, Public } from '../../common/decorators';
 import { AuthenticatedUser } from '../auth/types/authenticated-user.type';
 import { OptionalJwtAuthGuard } from '../auth/guards/optional-jwt-auth.guard';
 
@@ -15,6 +15,7 @@ export class RecommendationsController {
    * Anonymous visitors receive the cold-start feed. A supplied Bearer token
    * is validated and, when valid, drives the user's personalized feed.
    */
+  @Public()
   @UseGuards(OptionalJwtAuthGuard)
   @Get()
   @ApiOperation({
