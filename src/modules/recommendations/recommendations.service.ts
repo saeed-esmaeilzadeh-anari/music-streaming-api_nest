@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { RedisCacheService } from '../../redis/redis-cache.service';
 import { FollowsService } from '../follows/follows.service';
@@ -297,7 +298,7 @@ export class RecommendationsService {
     followedArtistIds: string[],
     take: number,
   ): Promise<RecommendationSection> {
-    const filters = [
+    const filters: Prisma.PlaylistWhereInput[] = [
       ...(genreIds.length
         ? [{
             tracks: {
