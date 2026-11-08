@@ -72,6 +72,15 @@ function createAudioFixture(directory) {
 async function main() {
   const fixtureDir = await mkdtemp(path.join(tmpdir(), 'soundwave-e2e-'));
   try {
+    const anonymousFeed = await request('GET', '/recommendations?limit=5');
+    assert.equal(anonymousFeed.data.sections.length, 6);
+    assert.equal(anonymousFeed.data.coldStart, true);
+
+    await request('GET', '/recommendations?limit=5', {
+      token: 'not-a-valid-jwt-token',
+      expected: [401],
+    });
+
     const email = `e2e-${randomUUID()}@example.test`;
     const username = `e2e_${randomUUID().replaceAll('-', '').slice(0, 16)}`;
     const password = 'StrongE2ePass123';
@@ -210,6 +219,12 @@ async function main() {
     const historyEntry = historyItems.find((entry) => entry.trackId === trackId);
     assert.ok(historyEntry, 'play event must be persisted in listening history');
     assert.equal(historyEntry.completed, true, 'a 30-second listen must be marked completed');
+
+    const personalizedFeed = await request('GET', '/recommendations?limit=5', {
+      token: accessToken,
+    });
+    assert.equal(personalizedFeed.data.sections.length, 6);
+    assert.equal(personalizedFeed.data.coldStart, false);
 
     await request('POST', '/favorites', {
       token: accessToken,
