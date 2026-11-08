@@ -363,6 +363,41 @@ async function main() {
       expected: [204],
     });
 
+    // Session-management regression coverage: metadata must never expose token material,
+    // and a user may revoke only their own refresh session.
+    const sessionList = await request('GET', '/auth/sessions', { token: accessToken });
+    assert.ok(Array.isArray(sessionList.data), 'active sessions endpoint must return an array');
+    assert.ok(sessionList.data.length >= 1, 'the current login must have an active session');
+    for (const session of sessionList.data) {
+      assert.ok(session.id, 'session metadata must include its id');
+      assert.ok(session.createdAt && session.expiresAt, 'session metadata must include lifecycle timestamps');
+      assert.equal('tokenHash' in session, false, 'session metadata must not expose token hashes');
+      assert.equal('refreshToken' in session, false, 'session metadata must not expose refresh tokens');
+    }
+
+    const extraLogin = await request('POST', '/auth/login', {
+      body: { email, password },
+      expected: [200],
+    });
+    const sessionsAfterLogin = await request('GET', '/auth/sessions', { token: accessToken });
+    const extraSession = sessionsAfterLogin.data.find(
+      (session) => !sessionList.data.some((existing) => existing.id === session.id),
+    );
+    assert.ok(extraSession, 'a new login must create a separately manageable session');
+
+    await request('DELETE', `/auth/sessions/${extraSession.id}`, {
+      token: secondRegistration.data.accessToken,
+      expected: [404, 401],
+    });
+    await request('DELETE', `/auth/sessions/${extraSession.id}`, {
+      token: accessToken,
+      expected: [204],
+    });
+    await request('POST', '/auth/refresh', {
+      body: { refreshToken: extraLogin.data.refreshToken },
+      expected: [401],
+    });
+
     await request('POST', '/auth/logout', {
       body: { refreshToken },
       expected: [204],
@@ -394,6 +429,7 @@ async function main() {
         'catalog search',
         'admin login, user listing, and genre management',
         'logout revokes the refresh token',
+        'active sessions expose metadata only and support owner-scoped revocation',
       ],
       userId,
       artistId,
