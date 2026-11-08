@@ -25,7 +25,10 @@ export class LikesService {
       throw new ConflictException('You have already liked this item.');
     }
 
-    const targetOwnerId = await this.likesRepository.findTargetOwnerId(dto.targetType, dto.targetId);
+    const targetOwnerId = await this.likesRepository.findTargetOwnerId(
+      dto.targetType,
+      dto.targetId,
+    );
     if (!targetOwnerId) {
       throw new NotFoundException('The item you are trying to like was not found.');
     }

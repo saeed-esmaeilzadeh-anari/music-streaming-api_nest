@@ -22,9 +22,9 @@ describe('validateEnv', () => {
   });
 
   it('requires the complete S3 configuration when S3 storage is selected', () => {
-    expect(() =>
-      validateEnv({ ...localEnvironment, STORAGE_PROVIDER: 's3' }),
-    ).toThrow(/AWS_REGION/);
+    expect(() => validateEnv({ ...localEnvironment, STORAGE_PROVIDER: 's3' })).toThrow(
+      /AWS_REGION/,
+    );
   });
 
   it('accepts S3 storage when all required credentials are configured', () => {
@@ -41,9 +41,9 @@ describe('validateEnv', () => {
   });
 
   it('requires JWT secrets in development too', () => {
-    expect(() =>
-      validateEnv({ ...localEnvironment, JWT_ACCESS_SECRET: '' }),
-    ).toThrow(/JWT_ACCESS_SECRET/);
+    expect(() => validateEnv({ ...localEnvironment, JWT_ACCESS_SECRET: '' })).toThrow(
+      /JWT_ACCESS_SECRET/,
+    );
   });
 
   it('requires long independent JWT secrets in production', () => {

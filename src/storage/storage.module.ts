@@ -19,9 +19,7 @@ export function createStorageProvider(config: ConfigService): IStorageProvider {
     case 's3':
       return new S3StorageProvider(config);
     default:
-      throw new Error(
-        `Unknown STORAGE_PROVIDER="${provider}". Valid values are "local" and "s3".`,
-      );
+      throw new Error(`Unknown STORAGE_PROVIDER="${provider}". Valid values are "local" and "s3".`);
   }
 }
 

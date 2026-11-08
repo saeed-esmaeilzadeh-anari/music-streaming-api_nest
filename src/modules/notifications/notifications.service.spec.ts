@@ -68,7 +68,9 @@ describe('NotificationsService', () => {
   it('returns not found when the notification is owned by another user or does not exist', async () => {
     repository.markRead.mockResolvedValue(null);
 
-    await expect(service.markRead(notificationId, userId)).rejects.toBeInstanceOf(NotFoundException);
+    await expect(service.markRead(notificationId, userId)).rejects.toBeInstanceOf(
+      NotFoundException,
+    );
     expect(repository.markRead).toHaveBeenCalledWith(notificationId, userId);
   });
 

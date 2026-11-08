@@ -7,6 +7,7 @@ export const QUEUE_NAMES = {
   EMAIL: 'email',
   NOTIFICATIONS: 'notifications',
   PAYMENTS: 'payments',
+  ARTIST_STATS: 'artist-stats',
 } as const;
 
 export const TRACK_PROCESSING_JOBS = {
@@ -26,3 +27,11 @@ export const NOTIFICATION_JOBS = {
 export const PAYMENT_JOBS = {
   RECONCILE_SUBSCRIPTION: 'reconcile-subscription',
 } as const;
+
+export const ARTIST_STATS_JOBS = {
+  /** Recomputes artists.monthlyListeners from the last 30 days of plays. */
+  RECOMPUTE_MONTHLY_LISTENERS: 'recompute-monthly-listeners',
+} as const;
+
+/** Hourly cadence for the monthly-listeners recompute (ms). */
+export const ARTIST_STATS_RECOMPUTE_INTERVAL_MS = 60 * 60 * 1000;

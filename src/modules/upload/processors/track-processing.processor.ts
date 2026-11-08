@@ -142,9 +142,7 @@ export class TrackProcessingProcessor extends WorkerHost {
   }
 
   private getStableAudioUrl(trackId: string): string {
-    const configuredAppUrl = (
-      this.config.get<string>('APP_URL') ?? 'http://localhost:3001'
-    ).trim();
+    const configuredAppUrl = (this.config.get<string>('APP_URL') ?? 'http://localhost:3001').trim();
     const appUrl = /^https?:\/\//i.test(configuredAppUrl)
       ? configuredAppUrl
       : /^(localhost|127\.0\.0\.1)(:\d+)?$/i.test(configuredAppUrl)

@@ -43,6 +43,7 @@ export class ArtistsRepository {
         data: {
           stageName: data.stageName,
           bio: data.bio,
+          verificationStatus: 'PENDING',
           user: { connect: { id: userId } },
         },
       });

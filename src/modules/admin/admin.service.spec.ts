@@ -21,7 +21,9 @@ describe('AdminService', () => {
       album: { count: jest.fn().mockResolvedValue(4) },
       subscription: { count: jest.fn().mockResolvedValue(2) },
     };
-    usersRepository = { update: jest.fn().mockResolvedValue({ id: 'user-1', status: 'SUSPENDED' }) };
+    usersRepository = {
+      update: jest.fn().mockResolvedValue({ id: 'user-1', status: 'SUSPENDED' }),
+    };
     service = new AdminService(
       prisma as unknown as PrismaService,
       usersRepository as unknown as UsersRepository,

@@ -40,8 +40,12 @@ describe('LikesRepository', () => {
     prisma.playlist.findUnique.mockResolvedValue({ ownerId: 'playlist-owner' });
     prisma.comment.findUnique.mockResolvedValue({ userId: 'comment-owner' });
 
-    await expect(repository.findTargetOwnerId('PLAYLIST', 'playlist-1')).resolves.toBe('playlist-owner');
-    await expect(repository.findTargetOwnerId('COMMENT', 'comment-1')).resolves.toBe('comment-owner');
+    await expect(repository.findTargetOwnerId('PLAYLIST', 'playlist-1')).resolves.toBe(
+      'playlist-owner',
+    );
+    await expect(repository.findTargetOwnerId('COMMENT', 'comment-1')).resolves.toBe(
+      'comment-owner',
+    );
   });
 
   it('returns null for missing or unsupported targets', async () => {

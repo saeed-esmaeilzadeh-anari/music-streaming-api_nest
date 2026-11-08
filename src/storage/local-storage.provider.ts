@@ -54,7 +54,6 @@ export class LocalStorageProvider implements IStorageProvider {
   async upload(key: string, buffer: Buffer, _mimeType: string): Promise<string> {
     const dest = this.resolve(key);
 
-
     await fs.mkdir(path.dirname(dest), { recursive: true });
     await fs.writeFile(dest, buffer);
 
@@ -77,10 +76,7 @@ export class LocalStorageProvider implements IStorageProvider {
       this.logger.debug(`Deleted local file: ${key}`);
     } catch (error: unknown) {
       const isMissingFile =
-        typeof error === 'object' &&
-        error !== null &&
-        'code' in error &&
-        error.code === 'ENOENT';
+        typeof error === 'object' && error !== null && 'code' in error && error.code === 'ENOENT';
       if (!isMissingFile) throw error;
     }
   }

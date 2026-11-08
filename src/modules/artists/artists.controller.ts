@@ -1,8 +1,13 @@
 import {
   Body,
   Controller,
+  DefaultValuePipe,
+  Delete,
   Get,
+  HttpCode,
+  HttpStatus,
   Param,
+  ParseIntPipe,
   ParseUUIDPipe,
   Patch,
   Post,
@@ -12,6 +17,7 @@ import {
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { ArtistsService } from './artists.service';
 import { CreateArtistDto, UpdateArtistDto, ArtistResponseDto } from './dto';
+import { FollowsService } from '../follows/follows.service';
 import { PaginationQueryDto } from '../../common/dto/pagination-query.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
@@ -21,7 +27,10 @@ import { Role } from '../../common/constants/role.enum';
 @ApiTags('Artists')
 @Controller('artists')
 export class ArtistsController {
-  constructor(private readonly artistsService: ArtistsService) {}
+  constructor(
+    private readonly artistsService: ArtistsService,
+    private readonly followsService: FollowsService,
+  ) {}
 
   @Public()
   @Get()
@@ -81,5 +90,36 @@ export class ArtistsController {
     @Body() dto: UpdateArtistDto,
   ) {
     return this.artistsService.update(id, userId, dto);
+  }
+
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Post(':id/follow')
+  @ApiOperation({ summary: 'Follow an artist (idempotent)' })
+  @ApiResponse({ status: 201, schema: { example: { following: true } } })
+  follow(@Param('id', ParseUUIDPipe) id: string, @CurrentUser('id') userId: string) {
+    return this.followsService.followArtist(userId, id);
+  }
+
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Delete(':id/follow')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Unfollow an artist (idempotent)' })
+  @ApiResponse({ status: 200, schema: { example: { following: false } } })
+  unfollow(@Param('id', ParseUUIDPipe) id: string, @CurrentUser('id') userId: string) {
+    return this.followsService.unfollowArtist(userId, id);
+  }
+
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Get(':id/followers')
+  @ApiOperation({ summary: 'List the followers of an artist' })
+  listFollowers(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Query('skip', new DefaultValuePipe(0), ParseIntPipe) skip: number,
+    @Query('limit', new DefaultValuePipe(20), ParseIntPipe) limit: number,
+  ) {
+    return this.followsService.listFollowers(id, skip, Math.min(limit, 50));
   }
 }

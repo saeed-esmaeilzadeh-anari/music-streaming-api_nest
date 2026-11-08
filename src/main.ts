@@ -35,13 +35,25 @@ async function bootstrap() {
   const configService = app.get(ConfigService);
   const apiPrefix = configService.get<string>('app.apiPrefix') ?? 'api/v1';
 
-  // IMPORTANT: this must be registered before express.json/urlencoded.
-  // express.raw() places the uploaded binary bytes in req.body as a Buffer.
+  // IMPORTANT: these must be registered before express.json/urlencoded.
+  // 1) express.raw() places the uploaded binary bytes in req.body as a Buffer.
   app.use(
     `/${apiPrefix}/uploads/local-put`,
     express.raw({
       type: '*/*',
       limit: '110mb',
+    }),
+  );
+
+  // 2) The Stripe webhook needs the exact raw bytes for signature
+  //    verification. Without this, express.json() consumes the stream and
+  //    req.rawBody stays undefined -> every webhook delivery fails with 400
+  //    "Missing Stripe signature or raw body."
+  app.use(
+    `/${apiPrefix}/payments/webhook/stripe`,
+    express.raw({
+      type: '*/*',
+      limit: '1mb',
     }),
   );
 

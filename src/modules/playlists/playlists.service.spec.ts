@@ -1,8 +1,4 @@
-import {
-  ConflictException,
-  ForbiddenException,
-  NotFoundException,
-} from '@nestjs/common';
+import { ConflictException, ForbiddenException, NotFoundException } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { PlaylistsService } from './playlists.service';
 import { PlaylistsRepository } from './repositories/playlists.repository';
@@ -70,18 +66,21 @@ describe('PlaylistsService', () => {
       visibility: PlaylistVisibilityDto.PRIVATE,
     });
 
-    expect(repository.create).toHaveBeenCalledWith(expect.objectContaining({
-      title: 'Test playlist',
-      owner: { connect: { id: ownerId } },
-    }));
+    expect(repository.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        title: 'Test playlist',
+        owner: { connect: { id: ownerId } },
+      }),
+    );
     expect(result).toMatchObject({ id: playlistId, ownerId });
   });
 
   it('does not let another user read a private playlist', async () => {
     repository.findById.mockResolvedValue(playlist);
 
-    await expect(service.findById(playlistId, otherUserId))
-      .rejects.toBeInstanceOf(ForbiddenException);
+    await expect(service.findById(playlistId, otherUserId)).rejects.toBeInstanceOf(
+      ForbiddenException,
+    );
   });
 
   it('allows an owner to read their private playlist', async () => {
@@ -95,8 +94,9 @@ describe('PlaylistsService', () => {
   it('rejects metadata updates from a non-owner', async () => {
     repository.findById.mockResolvedValue(playlist);
 
-    await expect(service.update(playlistId, otherUserId, { title: 'Hijacked' }))
-      .rejects.toBeInstanceOf(ForbiddenException);
+    await expect(
+      service.update(playlistId, otherUserId, { title: 'Hijacked' }),
+    ).rejects.toBeInstanceOf(ForbiddenException);
     expect(repository.update).not.toHaveBeenCalled();
   });
 
@@ -116,8 +116,9 @@ describe('PlaylistsService', () => {
     repository.findById.mockResolvedValue(playlist);
     repository.findTrackEntry.mockResolvedValue({ playlistId, trackId });
 
-    await expect(service.addTrack(playlistId, ownerId, { trackId }))
-      .rejects.toBeInstanceOf(ConflictException);
+    await expect(service.addTrack(playlistId, ownerId, { trackId })).rejects.toBeInstanceOf(
+      ConflictException,
+    );
     expect(repository.addTrack).not.toHaveBeenCalled();
   });
 

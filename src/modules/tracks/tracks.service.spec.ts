@@ -23,7 +23,7 @@ describe('TracksService', () => {
     setGenres: jest.Mock;
   };
   let artists: { findById: jest.Mock };
-  let cache: { buildKey: jest.Mock; del: jest.Mock; delByPrefix: jest.Mock };
+  let cache: { buildKey: jest.Mock; del: jest.Mock; delByPrefix: jest.Mock; acquire: jest.Mock };
   let events: { emit: jest.Mock };
   let service: TracksService;
 
@@ -60,6 +60,7 @@ describe('TracksService', () => {
       buildKey: jest.fn((...parts: string[]) => parts.join(':')),
       del: jest.fn().mockResolvedValue(undefined),
       delByPrefix: jest.fn().mockResolvedValue(undefined),
+      acquire: jest.fn().mockResolvedValue(true),
     };
     events = { emit: jest.fn() };
 
@@ -77,10 +78,12 @@ describe('TracksService', () => {
       isExplicit: false,
     });
 
-    expect(tracks.create).toHaveBeenCalledWith(expect.objectContaining({
-      title: 'Unit test track',
-      artist: { connect: { id: artistId } },
-    }));
+    expect(tracks.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        title: 'Unit test track',
+        artist: { connect: { id: artistId } },
+      }),
+    );
     expect(result.id).toBe(trackId);
     expect(cache.delByPrefix).toHaveBeenCalledWith('tracks:list');
   });
@@ -88,9 +91,11 @@ describe('TracksService', () => {
   it('rejects track creation for an artist profile owned by someone else', async () => {
     artists.findById.mockResolvedValue({ id: artistId, userId });
 
-    await expect(service.create(artistId, otherUserId, Role.ARTIST, {
-      title: 'Not allowed',
-    })).rejects.toBeInstanceOf(ForbiddenException);
+    await expect(
+      service.create(artistId, otherUserId, Role.ARTIST, {
+        title: 'Not allowed',
+      }),
+    ).rejects.toBeInstanceOf(ForbiddenException);
 
     expect(tracks.create).not.toHaveBeenCalled();
   });
@@ -127,7 +132,23 @@ describe('TracksService', () => {
   it('does not register plays for missing tracks', async () => {
     tracks.findById.mockResolvedValue(null);
 
-    await expect(service.registerPlay(trackId, userId, 30)).rejects.toBeInstanceOf(NotFoundException);
+    await expect(service.registerPlay(trackId, userId, 30)).rejects.toBeInstanceOf(
+      NotFoundException,
+    );
+    expect(tracks.incrementPlayCount).not.toHaveBeenCalled();
+    expect(events.emit).not.toHaveBeenCalled();
+  });
+
+  it('deduplicates repeated plays inside the configured window', async () => {
+    tracks.findById.mockResolvedValue(track);
+    cache.acquire.mockResolvedValue(false); // slot already claimed by first play
+
+    await service.registerPlay(trackId, userId, 0);
+
+    expect(cache.acquire).toHaveBeenCalledWith(
+      `play:dedup:${userId}:${trackId}`,
+      expect.any(Number),
+    );
     expect(tracks.incrementPlayCount).not.toHaveBeenCalled();
     expect(events.emit).not.toHaveBeenCalled();
   });

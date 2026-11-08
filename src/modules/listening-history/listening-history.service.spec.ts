@@ -32,28 +32,33 @@ describe('ListeningHistoryService', () => {
   it('keeps short listens incomplete', async () => {
     await service.handleTrackPlayed(new TrackPlayedEvent(userId, trackId, 12));
 
-    expect(repository.create).toHaveBeenCalledWith(expect.objectContaining({
-      progressSec: 12,
-      completed: false,
-    }));
+    expect(repository.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        progressSec: 12,
+        completed: false,
+      }),
+    );
   });
 
   it('does not throw when history persistence fails', async () => {
     repository.create.mockRejectedValue(new Error('database unavailable'));
 
-    await expect(service.handleTrackPlayed(new TrackPlayedEvent(userId, trackId, 5)))
-      .resolves.toBeUndefined();
+    await expect(
+      service.handleTrackPlayed(new TrackPlayedEvent(userId, trackId, 5)),
+    ).resolves.toBeUndefined();
   });
 
   it('returns only the current user history in a paginated response', async () => {
-    repository.findMany.mockResolvedValue([{
-      id: 'history-1',
-      userId,
-      trackId,
-      progressSec: 31,
-      completed: true,
-      playedAt: new Date(),
-    }]);
+    repository.findMany.mockResolvedValue([
+      {
+        id: 'history-1',
+        userId,
+        trackId,
+        progressSec: 31,
+        completed: true,
+        playedAt: new Date(),
+      },
+    ]);
     repository.count.mockResolvedValue(1);
     const query = Object.assign(new PaginationQueryDto(), { page: 1, limit: 5 });
 

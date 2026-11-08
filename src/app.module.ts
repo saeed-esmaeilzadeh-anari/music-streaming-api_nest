@@ -32,6 +32,12 @@ import { NotificationsModule } from './modules/notifications/notifications.modul
 import { SubscriptionModule } from './modules/subscription/subscription.module';
 import { PaymentsModule } from './modules/payments/payments.module';
 import { AdminModule } from './modules/admin/admin.module';
+import { PreferencesModule } from './modules/preferences/preferences.module';
+import { FollowsModule } from './modules/follows/follows.module';
+import { RecommendationsModule } from './modules/recommendations/recommendations.module';
+import { ReportsModule } from './modules/reports/reports.module';
+import { AuditModule } from './modules/audit/audit.module';
+import { HealthModule } from './modules/health/health.module';
 
 @Module({
   imports: [
@@ -75,6 +81,12 @@ import { AdminModule } from './modules/admin/admin.module';
     SubscriptionModule,
     PaymentsModule,
     AdminModule,
+    PreferencesModule,
+    FollowsModule,
+    RecommendationsModule,
+    ReportsModule,
+    AuditModule,
+    HealthModule,
   ],
   providers: [
     // Order matters for filters: more specific filters (Prisma) must be

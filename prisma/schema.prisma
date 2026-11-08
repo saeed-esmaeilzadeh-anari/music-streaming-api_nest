@@ -125,6 +125,55 @@ enum UploadStatus {
   FAILED
 }
 
+enum ThemePreference {
+  LIGHT
+  DARK
+  SYSTEM
+}
+
+enum AccentPreference {
+  EMERALD
+  VIOLET
+  ROSE
+  AMBER
+  BLUE
+}
+
+enum LanguagePreference {
+  FA
+  EN
+}
+
+enum ReportTargetType {
+  TRACK
+  ALBUM
+  PLAYLIST
+  COMMENT
+  USER
+  ARTIST
+}
+
+enum ReportReason {
+  COPYRIGHT
+  EXPLICIT_CONTENT
+  SPAM
+  HARASSMENT
+  MISINFORMATION
+  OTHER
+}
+
+enum ReportStatus {
+  OPEN
+  RESOLVED
+  DISMISSED
+}
+
+enum ArtistVerificationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
 // -------------------------------------------------------------------
 // USERS & AUTH
 // -------------------------------------------------------------------
@@ -159,6 +208,11 @@ model User {
   uploads          Upload[]
   followers        Follow[]           @relation("followee")
   following        Follow[]           @relation("follower")
+  preference           UserPreference?         @relation("userPreference")
+  notificationPref     NotificationPreference? @relation("userNotificationPreference")
+  reportsFiled         Report[]                @relation("reporter")
+  reportsResolved      Report[]                @relation("reportResolver")
+  auditLogs            AuditLog[]              @relation("auditActor")
 
   @@index([email])
   @@index([username])
@@ -199,14 +253,15 @@ model Follow {
 // -------------------------------------------------------------------
 
 model Artist {
-  id               String  @id @default(uuid())
-  userId           String  @unique
-  user             User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  stageName        String
-  bio              String?
-  bannerUrl        String?
-  isVerified       Boolean @default(false)
-  monthlyListeners Int     @default(0)
+  id                 String                   @id @default(uuid())
+  userId             String                   @unique
+  user               User                     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  stageName          String
+  bio                String?
+  bannerUrl          String?
+  isVerified         Boolean                  @default(false)
+  verificationStatus ArtistVerificationStatus @default(APPROVED)
+  monthlyListeners   Int                      @default(0)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -560,4 +615,93 @@ model Upload {
   @@index([userId])
   @@index([trackId])
   @@map("uploads")
+}
+
+// -------------------------------------------------------------------
+// USER PREFERENCES (appearance / locale / privacy, server-synced)
+// Wire format uses lowercase values ("dark", "emerald", "fa"); DTOs
+// accept either case and services normalize on write.
+// -------------------------------------------------------------------
+
+model UserPreference {
+  id                    String             @id @default(uuid())
+  userId                String             @unique
+  user                  User               @relation("userPreference", fields: [userId], references: [id], onDelete: Cascade)
+  theme                 ThemePreference    @default(DARK)
+  accent                AccentPreference   @default(EMERALD)
+  language              LanguagePreference @default(FA)
+  reducedMotion         Boolean            @default(false)
+  publicProfile         Boolean            @default(true)
+  showListeningActivity Boolean            @default(true)
+
+  createdAt DateTime @default(now()) @updatedAt
+  updatedAt DateTime @updatedAt
+
+  @@map("user_preferences")
+}
+
+// One row per user with per-category toggles. Missing rows mean "all
+// defaults" - services return defaults without persisting on first read.
+model NotificationPreference {
+  id                 String   @id @default(uuid())
+  userId             String   @unique
+  user               User     @relation("userNotificationPreference", fields: [userId], references: [id], onDelete: Cascade)
+  newFollower        Boolean  @default(true)
+  newRelease         Boolean  @default(true)
+  playlistAdd        Boolean  @default(true)
+  commentReply       Boolean  @default(true)
+  likeReceived       Boolean  @default(true)
+  subscriptionUpdate Boolean  @default(true)
+  paymentAlert       Boolean  @default(true)
+  systemMessage      Boolean  @default(true)
+  pushEnabled        Boolean  @default(true)
+  emailDigest        Boolean  @default(false)
+
+  createdAt DateTime @default(now()) @updatedAt
+  updatedAt DateTime @updatedAt
+
+  @@map("notification_preferences")
+}
+
+// -------------------------------------------------------------------
+// MODERATION (user reports + admin/moderator resolution + audit trail)
+// -------------------------------------------------------------------
+
+model Report {
+  id             String           @id @default(uuid())
+  reporterId     String
+  reporter       User             @relation("reporter", fields: [reporterId], references: [id], onDelete: Cascade)
+  targetType     ReportTargetType
+  targetId       String
+  reason         ReportReason
+  details        String?
+  status         ReportStatus     @default(OPEN)
+  resolutionNote String?
+  resolvedById   String?
+  resolvedBy     User?            @relation("reportResolver", fields: [resolvedById], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([reporterId, targetType, targetId])
+  @@index([status, createdAt])
+  @@index([targetType, targetId])
+  @@map("reports")
+}
+
+model AuditLog {
+  id         String   @id @default(uuid())
+  actorId    String?
+  actor      User?    @relation("auditActor", fields: [actorId], references: [id], onDelete: SetNull)
+  action     String
+  entityType String
+  entityId   String?
+  metadata   Json?
+
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([actorId])
+  @@index([entityType, entityId])
+  @@map("audit_logs")
 }
