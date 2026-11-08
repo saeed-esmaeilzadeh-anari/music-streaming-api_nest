@@ -69,7 +69,9 @@ describe('FavoritesService', () => {
   });
 
   it('returns a paginated list belonging only to the requested user', async () => {
-    repository.findMany.mockResolvedValue([{ id: 'favorite-1', userId, trackId, createdAt: new Date() }]);
+    repository.findMany.mockResolvedValue([
+      { id: 'favorite-1', userId, trackId, createdAt: new Date() },
+    ]);
     repository.count.mockResolvedValue(1);
 
     const query = Object.assign(new PaginationQueryDto(), { page: 1, limit: 10 });

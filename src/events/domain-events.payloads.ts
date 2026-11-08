@@ -35,6 +35,14 @@ export class TrackPlayedEvent {
   ) {}
 }
 
+export class UserFollowedEvent {
+  constructor(
+    public readonly followerId: string,
+    public readonly followerUsername: string,
+    public readonly followeeId: string,
+  ) {}
+}
+
 export class CommentCreatedEvent {
   constructor(
     public readonly commentId: string,

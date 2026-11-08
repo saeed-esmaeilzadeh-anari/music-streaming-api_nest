@@ -87,11 +87,13 @@ describe('UploadService', () => {
   });
 
   it('requires a track id for audio uploads', async () => {
-    await expect(service.requestPresignedUrl(ownerId, {
-      assetType: 'TRACK_AUDIO',
-      originalName: 'song.mp3',
-      mimeType: 'audio/mpeg',
-    })).rejects.toBeInstanceOf(BadRequestException);
+    await expect(
+      service.requestPresignedUrl(ownerId, {
+        assetType: 'TRACK_AUDIO',
+        originalName: 'song.mp3',
+        mimeType: 'audio/mpeg',
+      }),
+    ).rejects.toBeInstanceOf(BadRequestException);
 
     expect(prisma.upload.create).not.toHaveBeenCalled();
   });
@@ -102,12 +104,14 @@ describe('UploadService', () => {
       artist: { userId: ownerId },
     });
 
-    await expect(service.requestPresignedUrl(otherUserId, {
-      assetType: 'TRACK_AUDIO',
-      originalName: 'song.mp3',
-      mimeType: 'audio/mpeg',
-      trackId,
-    })).rejects.toBeInstanceOf(ForbiddenException);
+    await expect(
+      service.requestPresignedUrl(otherUserId, {
+        assetType: 'TRACK_AUDIO',
+        originalName: 'song.mp3',
+        mimeType: 'audio/mpeg',
+        trackId,
+      }),
+    ).rejects.toBeInstanceOf(ForbiddenException);
 
     expect(prisma.upload.create).not.toHaveBeenCalled();
   });
@@ -118,12 +122,14 @@ describe('UploadService', () => {
       artist: { userId: ownerId },
     });
 
-    await expect(service.requestPresignedUrl(ownerId, {
-      assetType: 'TRACK_AUDIO',
-      originalName: 'song.jpg',
-      mimeType: 'image/jpeg',
-      trackId,
-    })).rejects.toBeInstanceOf(BadRequestException);
+    await expect(
+      service.requestPresignedUrl(ownerId, {
+        assetType: 'TRACK_AUDIO',
+        originalName: 'song.jpg',
+        mimeType: 'image/jpeg',
+        trackId,
+      }),
+    ).rejects.toBeInstanceOf(BadRequestException);
 
     expect(prisma.upload.create).not.toHaveBeenCalled();
   });
@@ -137,9 +143,7 @@ describe('UploadService', () => {
       mimeType: 'image/png',
     });
 
-    expect(result.uploadUrl).toBe(
-      `http://localhost:3001/api/v1/uploads/local-put/${uploadId}`,
-    );
+    expect(result.uploadUrl).toBe(`http://localhost:3001/api/v1/uploads/local-put/${uploadId}`);
     expect(prisma.upload.create).toHaveBeenCalledWith({
       data: expect.objectContaining({
         userId: ownerId,
@@ -156,16 +160,19 @@ describe('UploadService', () => {
     });
     prisma.upload.create.mockResolvedValue({ id: uploadId });
 
-    await expect(service.requestPresignedUrl(ownerId, {
-      assetType: 'USER_AVATAR',
-      originalName: 'avatar.png',
-      mimeType: 'image/png',
-    })).rejects.toBeInstanceOf(InternalServerErrorException);
+    await expect(
+      service.requestPresignedUrl(ownerId, {
+        assetType: 'USER_AVATAR',
+        originalName: 'avatar.png',
+        mimeType: 'image/png',
+      }),
+    ).rejects.toBeInstanceOf(InternalServerErrorException);
   });
 
   it('rejects empty local upload bodies before touching storage', async () => {
-    await expect(service.receiveLocalUpload(uploadId, Buffer.alloc(0)))
-      .rejects.toBeInstanceOf(BadRequestException);
+    await expect(service.receiveLocalUpload(uploadId, Buffer.alloc(0))).rejects.toBeInstanceOf(
+      BadRequestException,
+    );
 
     expect(prisma.upload.findUnique).not.toHaveBeenCalled();
     expect(storage.upload).not.toHaveBeenCalled();
@@ -178,11 +185,7 @@ describe('UploadService', () => {
 
     await service.receiveLocalUpload(uploadId, bytes);
 
-    expect(storage.upload).toHaveBeenCalledWith(
-      audioUpload.s3Key,
-      bytes,
-      audioUpload.mimeType,
-    );
+    expect(storage.upload).toHaveBeenCalledWith(audioUpload.s3Key, bytes, audioUpload.mimeType);
     expect(prisma.upload.update).toHaveBeenCalledWith({
       where: { id: uploadId },
       data: { status: 'UPLOADED' },
@@ -192,8 +195,9 @@ describe('UploadService', () => {
   it('does not confirm an upload owned by another user', async () => {
     prisma.upload.findUnique.mockResolvedValue({ ...audioUpload, userId: ownerId });
 
-    await expect(service.confirmUpload(otherUserId, { uploadId }))
-      .rejects.toBeInstanceOf(NotFoundException);
+    await expect(service.confirmUpload(otherUserId, { uploadId })).rejects.toBeInstanceOf(
+      NotFoundException,
+    );
 
     expect(storage.exists).not.toHaveBeenCalled();
     expect(queue.add).not.toHaveBeenCalled();
@@ -203,8 +207,9 @@ describe('UploadService', () => {
     prisma.upload.findUnique.mockResolvedValue(audioUpload);
     storage.exists.mockResolvedValue(false);
 
-    await expect(service.confirmUpload(ownerId, { uploadId }))
-      .rejects.toBeInstanceOf(BadRequestException);
+    await expect(service.confirmUpload(ownerId, { uploadId })).rejects.toBeInstanceOf(
+      BadRequestException,
+    );
 
     expect(prisma.upload.update).not.toHaveBeenCalled();
     expect(queue.add).not.toHaveBeenCalled();
@@ -231,8 +236,9 @@ describe('UploadService', () => {
   it('does not confirm an already processed upload twice', async () => {
     prisma.upload.findUnique.mockResolvedValue({ ...audioUpload, status: 'READY' });
 
-    await expect(service.confirmUpload(ownerId, { uploadId }))
-      .rejects.toBeInstanceOf(BadRequestException);
+    await expect(service.confirmUpload(ownerId, { uploadId })).rejects.toBeInstanceOf(
+      BadRequestException,
+    );
 
     expect(storage.exists).not.toHaveBeenCalled();
     expect(queue.add).not.toHaveBeenCalled();

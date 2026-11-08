@@ -46,6 +46,23 @@ export class RedisCacheService {
   }
 
   /**
+   * SET key value NX EX ttl - atomically "claims" a slot for ttl seconds.
+   * Returns true when this call acquired the slot (first caller wins),
+   * false when a live claim already exists. Used for play deduplication
+   * where an absent Redis should never block the caller: connection
+   * failures are logged and treated as "acquired".
+   */
+  async acquire(key: string, ttlSeconds: number): Promise<boolean> {
+    try {
+      const result = await this.redisClient.set(key, '1', 'EX', ttlSeconds, 'NX');
+      return result === null ? false : true;
+    } catch (error) {
+      this.logger.warn(`Cache ACQUIRE failed for key "${key}": ${error}`);
+      return true; // fail open
+    }
+  }
+
+  /**
    * Deletes all keys matching a prefix - useful for invalidating
    * list/search caches when an underlying entity changes.
    * NOTE: requires the underlying store to support `keys()` (redis does).

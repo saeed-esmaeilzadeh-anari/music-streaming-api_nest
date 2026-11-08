@@ -59,12 +59,14 @@ describe('CommentsService', () => {
       targetId: trackId,
     });
 
-    expect(repository.create).toHaveBeenCalledWith(expect.objectContaining({
-      content: 'A comment',
-      targetType: CommentTargetTypeDto.TRACK,
-      user: { connect: { id: userId } },
-      track: { connect: { id: trackId } },
-    }));
+    expect(repository.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        content: 'A comment',
+        targetType: CommentTargetTypeDto.TRACK,
+        user: { connect: { id: userId } },
+        track: { connect: { id: trackId } },
+      }),
+    );
     expect(result).toMatchObject({ id: commentId, userId, content: 'A comment' });
     expect(events.emit).toHaveBeenCalledTimes(1);
     expect(events.emit.mock.calls[0][1]).toMatchObject({ targetOwnerId: 'artist-owner' });
@@ -76,12 +78,14 @@ describe('CommentsService', () => {
       trackId: 'another-track',
     });
 
-    await expect(service.create(userId, {
-      content: 'A reply',
-      targetType: CommentTargetTypeDto.TRACK,
-      targetId: trackId,
-      parentId: commentId,
-    })).rejects.toBeInstanceOf(BadRequestException);
+    await expect(
+      service.create(userId, {
+        content: 'A reply',
+        targetType: CommentTargetTypeDto.TRACK,
+        targetId: trackId,
+        parentId: commentId,
+      }),
+    ).rejects.toBeInstanceOf(BadRequestException);
 
     expect(repository.findTargetOwnerId).not.toHaveBeenCalled();
     expect(repository.create).not.toHaveBeenCalled();
@@ -90,11 +94,13 @@ describe('CommentsService', () => {
   it('does not create a comment for a missing content target', async () => {
     repository.findTargetOwnerId.mockResolvedValue(null);
 
-    await expect(service.create(userId, {
-      content: 'A comment',
-      targetType: CommentTargetTypeDto.TRACK,
-      targetId: trackId,
-    })).rejects.toBeInstanceOf(NotFoundException);
+    await expect(
+      service.create(userId, {
+        content: 'A comment',
+        targetType: CommentTargetTypeDto.TRACK,
+        targetId: trackId,
+      }),
+    ).rejects.toBeInstanceOf(NotFoundException);
 
     expect(repository.create).not.toHaveBeenCalled();
     expect(events.emit).not.toHaveBeenCalled();
@@ -103,11 +109,13 @@ describe('CommentsService', () => {
   it('rejects comments for a target that does not exist', async () => {
     repository.findTargetOwnerId.mockResolvedValue(null);
 
-    await expect(service.create(userId, {
-      content: 'A comment',
-      targetType: CommentTargetTypeDto.TRACK,
-      targetId: trackId,
-    })).rejects.toBeInstanceOf(NotFoundException);
+    await expect(
+      service.create(userId, {
+        content: 'A comment',
+        targetType: CommentTargetTypeDto.TRACK,
+        targetId: trackId,
+      }),
+    ).rejects.toBeInstanceOf(NotFoundException);
 
     expect(repository.create).not.toHaveBeenCalled();
   });
@@ -115,12 +123,14 @@ describe('CommentsService', () => {
   it('requires an existing parent comment before creating a reply', async () => {
     repository.findById.mockResolvedValue(null);
 
-    await expect(service.create(userId, {
-      content: 'A reply',
-      targetType: CommentTargetTypeDto.TRACK,
-      targetId: trackId,
-      parentId: 'missing-parent',
-    })).rejects.toBeInstanceOf(NotFoundException);
+    await expect(
+      service.create(userId, {
+        content: 'A reply',
+        targetType: CommentTargetTypeDto.TRACK,
+        targetId: trackId,
+        parentId: 'missing-parent',
+      }),
+    ).rejects.toBeInstanceOf(NotFoundException);
 
     expect(repository.create).not.toHaveBeenCalled();
   });
@@ -141,16 +151,18 @@ describe('CommentsService', () => {
   it('blocks a different user from editing the comment', async () => {
     repository.findById.mockResolvedValue(comment);
 
-    await expect(service.update(commentId, otherUserId, { content: 'Hijacked' }))
-      .rejects.toBeInstanceOf(ForbiddenException);
+    await expect(
+      service.update(commentId, otherUserId, { content: 'Hijacked' }),
+    ).rejects.toBeInstanceOf(ForbiddenException);
     expect(repository.update).not.toHaveBeenCalled();
   });
 
   it('allows only the author or staff to delete a comment', async () => {
     repository.findById.mockResolvedValue(comment);
 
-    await expect(service.remove(commentId, otherUserId, false))
-      .rejects.toBeInstanceOf(ForbiddenException);
+    await expect(service.remove(commentId, otherUserId, false)).rejects.toBeInstanceOf(
+      ForbiddenException,
+    );
     expect(repository.delete).not.toHaveBeenCalled();
 
     await service.remove(commentId, otherUserId, true);

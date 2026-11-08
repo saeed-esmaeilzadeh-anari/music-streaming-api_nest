@@ -76,8 +76,6 @@ export class AlbumsService {
   }
 
   async findAll(query: AlbumQueryDto) {
-
-
     const page = query.page ?? 1;
     const limit = query.limit ?? 20;
     const where = query.artistId

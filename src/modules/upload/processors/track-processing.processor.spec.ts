@@ -20,9 +20,9 @@ describe('TrackProcessingProcessor', () => {
   const uploadId = 'upload-id';
   const trackId = 'track-id';
   const s3Key = 'tracks/audio/test.mp3';
-  const execFileAsync = (
-    execFile as unknown as { [key: symbol]: jest.Mock }
-  )[Symbol.for('nodejs.util.promisify.custom')];
+  const execFileAsync = (execFile as unknown as { [key: symbol]: jest.Mock })[
+    Symbol.for('nodejs.util.promisify.custom')
+  ];
 
   let transaction: {
     upload: { update: jest.Mock };
@@ -37,13 +37,14 @@ describe('TrackProcessingProcessor', () => {
   let eventEmitter: jest.Mocked<Pick<EventEmitter2, 'emit'>>;
   let processor: TrackProcessingProcessor;
 
-  const makeJob = (attemptsMade = 0) => ({
-    id: 'job-1',
-    name: TRACK_PROCESSING_JOBS.EXTRACT_METADATA,
-    data: { uploadId, trackId, s3Key },
-    opts: { attempts: 3 },
-    attemptsMade,
-  }) as unknown as Job<{ uploadId: string; trackId: string; s3Key: string }>;
+  const makeJob = (attemptsMade = 0) =>
+    ({
+      id: 'job-1',
+      name: TRACK_PROCESSING_JOBS.EXTRACT_METADATA,
+      data: { uploadId, trackId, s3Key },
+      opts: { attempts: 3 },
+      attemptsMade,
+    }) as unknown as Job<{ uploadId: string; trackId: string; s3Key: string }>;
 
   beforeEach(() => {
     jest.clearAllMocks();

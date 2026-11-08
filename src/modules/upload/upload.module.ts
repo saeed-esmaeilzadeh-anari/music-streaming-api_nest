@@ -29,16 +29,15 @@ import { QUEUE_NAMES } from '../../queue/queue.constants';
  */
 @Module({
   imports: [
-    StorageModule,                                              // STORAGE_PROVIDER token
-    TracksModule,                                               // TracksRepository
+    StorageModule, // STORAGE_PROVIDER token
+    TracksModule, // TracksRepository
     BullModule.registerQueue({ name: QUEUE_NAMES.TRACK_PROCESSING }),
   ],
   controllers: [UploadController],
   providers: [
     UploadService,
-    TrackProcessingProcessor,   // ← THIS was the missing piece
+    TrackProcessingProcessor, // ← THIS was the missing piece
   ],
   exports: [UploadService],
 })
 export class UploadModule {}
- 

@@ -1,4 +1,9 @@
-import { ForbiddenException, Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
+import {
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { EventEmitter2 } from '@nestjs/event-emitter';
@@ -53,7 +58,6 @@ export class AuthService {
     return { user, ...tokens };
   }
 
-  
   async login(dto: LoginDto, meta: RequestMetadata = {}): Promise<AuthResponseDto> {
     let stage = 'find-user';
 
@@ -70,10 +74,7 @@ export class AuthService {
 
       stage = 'compare-password';
 
-      const passwordMatches = await bcrypt.compare(
-        dto.password,
-        user.passwordHash,
-      );
+      const passwordMatches = await bcrypt.compare(dto.password, user.passwordHash);
 
       if (!passwordMatches) {
         throw new UnauthorizedException('Invalid email or password.');
@@ -105,15 +106,13 @@ export class AuthService {
       console.error('[AUTH LOGIN FAILED]', {
         stage,
         errorName: error instanceof Error ? error.name : 'UnknownError',
-        errorMessage:
-          error instanceof Error ? error.message : String(error),
+        errorMessage: error instanceof Error ? error.message : String(error),
         stack: error instanceof Error ? error.stack : undefined,
       });
 
       throw error;
     }
   }
-
 
   /**
    * Rotates refresh tokens: the presented token is verified against its

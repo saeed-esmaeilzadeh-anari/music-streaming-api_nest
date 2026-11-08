@@ -42,7 +42,8 @@ describe('createStorageProvider', () => {
   });
 
   it('rejects unknown storage providers', () => {
-    expect(() => createStorageProvider(config({ STORAGE_PROVIDER: 'unknown' })))
-      .toThrow(/Unknown STORAGE_PROVIDER/);
+    expect(() => createStorageProvider(config({ STORAGE_PROVIDER: 'unknown' }))).toThrow(
+      /Unknown STORAGE_PROVIDER/,
+    );
   });
 });

@@ -1,4 +1,16 @@
-import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, ParseUUIDPipe, Post, Req, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Param,
+  ParseUUIDPipe,
+  Post,
+  Req,
+  UseGuards,
+} from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { Request } from 'express';
 import { AuthService } from './auth.service';
@@ -71,10 +83,7 @@ export class AuthController {
   @Delete('sessions/:id')
   @ApiOperation({ summary: "Revoke one of the current user's sessions" })
   @ApiResponse({ status: 204 })
-  revokeSession(
-    @CurrentUser('id') userId: string,
-    @Param('id', ParseUUIDPipe) sessionId: string,
-  ) {
+  revokeSession(@CurrentUser('id') userId: string, @Param('id', ParseUUIDPipe) sessionId: string) {
     return this.authService.revokeSession(userId, sessionId);
   }
 

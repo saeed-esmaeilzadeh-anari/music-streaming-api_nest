@@ -36,7 +36,7 @@ export class S3StorageProvider implements IStorageProvider {
   private readonly bucket: string;
 
   constructor(private readonly config: ConfigService) {
-    const region   = this.config.getOrThrow<string>('AWS_REGION');
+    const region = this.config.getOrThrow<string>('AWS_REGION');
     const endpoint = this.config.get<string>('AWS_S3_ENDPOINT');
 
     this.bucket = this.config.getOrThrow<string>('AWS_S3_BUCKET');
@@ -48,14 +48,14 @@ export class S3StorageProvider implements IStorageProvider {
       // CRC32 query parameters on presigned PUT URLs. Keep checksums opt-in.
       requestChecksumCalculation: 'WHEN_REQUIRED',
       credentials: {
-        accessKeyId:     this.config.getOrThrow<string>('AWS_ACCESS_KEY_ID'),
+        accessKeyId: this.config.getOrThrow<string>('AWS_ACCESS_KEY_ID'),
         secretAccessKey: this.config.getOrThrow<string>('AWS_SECRET_ACCESS_KEY'),
       },
     });
 
     this.logger.log(
       `S3StorageProvider ready — bucket: ${this.bucket}` +
-      (endpoint ? `, endpoint: ${endpoint}` : ' (AWS)'),
+        (endpoint ? `, endpoint: ${endpoint}` : ' (AWS)'),
     );
   }
 
@@ -64,9 +64,9 @@ export class S3StorageProvider implements IStorageProvider {
   async upload(key: string, buffer: Buffer, mimeType: string): Promise<string> {
     await this.client.send(
       new PutObjectCommand({
-        Bucket:      this.bucket,
-        Key:         key,
-        Body:        buffer,
+        Bucket: this.bucket,
+        Key: key,
+        Body: buffer,
         ContentType: mimeType,
       }),
     );
@@ -88,9 +88,7 @@ export class S3StorageProvider implements IStorageProvider {
 
   async exists(key: string): Promise<boolean> {
     try {
-      await this.client.send(
-        new HeadObjectCommand({ Bucket: this.bucket, Key: key }),
-      );
+      await this.client.send(new HeadObjectCommand({ Bucket: this.bucket, Key: key }));
       return true;
     } catch {
       return false;

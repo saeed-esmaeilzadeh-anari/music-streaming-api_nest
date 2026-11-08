@@ -198,11 +198,15 @@ export function validateEnv(config: Record<string, unknown>) {
     for (const key of ['JWT_ACCESS_SECRET', 'JWT_REFRESH_SECRET'] as const) {
       const secret = validatedConfig[key];
       if (typeof secret !== 'string' || secret.length < 32) {
-        throw new Error(`Environment validation failed: ${key} must contain at least 32 characters in production`);
+        throw new Error(
+          `Environment validation failed: ${key} must contain at least 32 characters in production`,
+        );
       }
     }
     if (validatedConfig.JWT_ACCESS_SECRET === validatedConfig.JWT_REFRESH_SECRET) {
-      throw new Error('Environment validation failed: JWT access and refresh secrets must be different in production');
+      throw new Error(
+        'Environment validation failed: JWT access and refresh secrets must be different in production',
+      );
     }
   }
 

@@ -37,7 +37,9 @@ describe('CommentsRepository', () => {
   it('resolves playlist owners and returns null for missing or unsupported targets', async () => {
     prisma.playlist.findUnique.mockResolvedValue({ ownerId: 'playlist-owner' });
 
-    await expect(repository.findTargetOwnerId('PLAYLIST', 'playlist-1')).resolves.toBe('playlist-owner');
+    await expect(repository.findTargetOwnerId('PLAYLIST', 'playlist-1')).resolves.toBe(
+      'playlist-owner',
+    );
     await expect(repository.findTargetOwnerId('UNKNOWN', 'missing')).resolves.toBeNull();
   });
 });

@@ -118,9 +118,24 @@ export class TracksService {
    * Records a play. Emits TRACK_PLAYED so ListeningHistory and Notifications
    * modules can react independently (event-driven decoupling) instead of
    * TracksService reaching into their repositories directly.
+   *
+   * Deduplication: clients retry and seek-events can spam this endpoint;
+   * within PLAY_DEDUPLICATION_WINDOW_SEC (default 30s) only the first
+   * play per (user, track) increments playCount / writes history. Set the
+   * env var to "0" to disable.
    */
   async registerPlay(trackId: string, userId: string, progressSec: number): Promise<void> {
     await this.findOrThrow(trackId);
+
+    const windowSec = parseInt(process.env.PLAY_DEDUPLICATION_WINDOW_SEC ?? '30', 10);
+    if (Number.isFinite(windowSec) && windowSec > 0) {
+      const dedupKey = this.cacheService.buildKey('play', 'dedup', userId, trackId);
+      const acquired = await this.cacheService.acquire(dedupKey, windowSec);
+      if (!acquired) {
+        return; // duplicate play inside the window - counted once already
+      }
+    }
+
     await this.tracksRepository.incrementPlayCount(trackId);
     this.eventEmitter.emit(
       DOMAIN_EVENTS.TRACK_PLAYED,
@@ -137,7 +152,6 @@ export class TracksService {
   }
 
   private async assertArtistOwnership(artistId: string, userId: string, role: Role) {
-   
     if (role === Role.ADMIN || role === Role.MODERATOR) {
       return; // staff can manage any track
     }

@@ -43,7 +43,10 @@ describe('LikesService', () => {
       createdAt: new Date(),
     });
 
-    const result = await service.like(userId, { targetType: LikeTargetTypeDto.TRACK, targetId: trackId });
+    const result = await service.like(userId, {
+      targetType: LikeTargetTypeDto.TRACK,
+      targetId: trackId,
+    });
 
     expect(repository.create).toHaveBeenCalledWith({
       user: { connect: { id: userId } },
@@ -59,10 +62,12 @@ describe('LikesService', () => {
     repository.findOne.mockResolvedValue(null);
     repository.findTargetOwnerId.mockResolvedValue(null);
 
-    await expect(service.like(userId, {
-      targetType: LikeTargetTypeDto.TRACK,
-      targetId: trackId,
-    })).rejects.toBeInstanceOf(NotFoundException);
+    await expect(
+      service.like(userId, {
+        targetType: LikeTargetTypeDto.TRACK,
+        targetId: trackId,
+      }),
+    ).rejects.toBeInstanceOf(NotFoundException);
 
     expect(repository.create).not.toHaveBeenCalled();
     expect(events.emit).not.toHaveBeenCalled();
@@ -72,10 +77,12 @@ describe('LikesService', () => {
     repository.findOne.mockResolvedValue(null);
     repository.findTargetOwnerId.mockResolvedValue(null);
 
-    await expect(service.like(userId, {
-      targetType: LikeTargetTypeDto.TRACK,
-      targetId: trackId,
-    })).rejects.toBeInstanceOf(NotFoundException);
+    await expect(
+      service.like(userId, {
+        targetType: LikeTargetTypeDto.TRACK,
+        targetId: trackId,
+      }),
+    ).rejects.toBeInstanceOf(NotFoundException);
 
     expect(repository.create).not.toHaveBeenCalled();
   });
@@ -83,8 +90,9 @@ describe('LikesService', () => {
   it('rejects duplicate likes', async () => {
     repository.findOne.mockResolvedValue({ id: 'like-1' });
 
-    await expect(service.like(userId, { targetType: LikeTargetTypeDto.TRACK, targetId: trackId }))
-      .rejects.toBeInstanceOf(ConflictException);
+    await expect(
+      service.like(userId, { targetType: LikeTargetTypeDto.TRACK, targetId: trackId }),
+    ).rejects.toBeInstanceOf(ConflictException);
 
     expect(repository.create).not.toHaveBeenCalled();
   });
@@ -101,8 +109,9 @@ describe('LikesService', () => {
   it('returns not found when unliking a missing relation', async () => {
     repository.findOne.mockResolvedValue(null);
 
-    await expect(service.unlike(userId, 'TRACK', trackId))
-      .rejects.toBeInstanceOf(NotFoundException);
+    await expect(service.unlike(userId, 'TRACK', trackId)).rejects.toBeInstanceOf(
+      NotFoundException,
+    );
     expect(repository.delete).not.toHaveBeenCalled();
   });
 
