@@ -1,4 +1,4 @@
-import { ForbiddenException, Injectable, UnauthorizedException } from '@nestjs/common';
+import { ForbiddenException, Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { EventEmitter2 } from '@nestjs/event-emitter';
@@ -166,6 +166,21 @@ export class AuthService {
 
   async logoutAllDevices(userId: string): Promise<void> {
     await this.refreshTokensRepository.revokeAllForUser(userId);
+  }
+
+  /**
+   * Returns only non-secret metadata for the authenticated user's active sessions.
+   * Refresh-token values and hashes are deliberately never exposed.
+   */
+  async listActiveSessions(userId: string) {
+    return this.refreshTokensRepository.findActiveForUser(userId);
+  }
+
+  async revokeSession(userId: string, sessionId: string): Promise<void> {
+    const result = await this.refreshTokensRepository.revokeForUser(sessionId, userId);
+    if (result.count === 0) {
+      throw new NotFoundException('Session not found or already revoked.');
+    }
   }
 
   private async issueTokenPair(payload: JwtPayload, meta: RequestMetadata) {

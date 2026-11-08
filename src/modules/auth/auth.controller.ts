@@ -1,4 +1,4 @@
-import { Body, Controller, HttpCode, HttpStatus, Post, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, ParseUUIDPipe, Post, Req, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { Request } from 'express';
 import { AuthService } from './auth.service';
@@ -54,6 +54,28 @@ export class AuthController {
   @ApiResponse({ status: 204 })
   logout(@Body() dto: RefreshTokenDto) {
     return this.authService.logout(dto.refreshToken);
+  }
+
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
+  @Get('sessions')
+  @ApiOperation({ summary: "List the current user's active sessions without exposing tokens" })
+  @ApiResponse({ status: 200, description: 'Active session metadata' })
+  listSessions(@CurrentUser('id') userId: string) {
+    return this.authService.listActiveSessions(userId);
+  }
+
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @Delete('sessions/:id')
+  @ApiOperation({ summary: "Revoke one of the current user's sessions" })
+  @ApiResponse({ status: 204 })
+  revokeSession(
+    @CurrentUser('id') userId: string,
+    @Param('id', ParseUUIDPipe) sessionId: string,
+  ) {
+    return this.authService.revokeSession(userId, sessionId);
   }
 
   @ApiBearerAuth()
