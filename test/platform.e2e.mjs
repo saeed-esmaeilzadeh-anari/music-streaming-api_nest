@@ -387,7 +387,7 @@ async function main() {
 
     await request('DELETE', `/auth/sessions/${extraSession.id}`, {
       token: secondRegistration.data.accessToken,
-      expected: [404, 401],
+      expected: [404],
     });
     await request('DELETE', `/auth/sessions/${extraSession.id}`, {
       token: accessToken,
