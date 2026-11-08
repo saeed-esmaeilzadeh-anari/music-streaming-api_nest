@@ -24,6 +24,31 @@ export class RefreshTokensRepository {
     });
   }
 
+  findActiveForUser(userId: string) {
+    return this.prisma.refreshToken.findMany({
+      where: {
+        userId,
+        revoked: false,
+        expiresAt: { gt: new Date() },
+      },
+      select: {
+        id: true,
+        userAgent: true,
+        ipAddress: true,
+        createdAt: true,
+        expiresAt: true,
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  revokeForUser(id: string, userId: string): Promise<Prisma.BatchPayload> {
+    return this.prisma.refreshToken.updateMany({
+      where: { id, userId, revoked: false },
+      data: { revoked: true },
+    });
+  }
+
   revoke(id: string): Promise<RefreshToken> {
     return this.prisma.refreshToken.update({
       where: { id },
