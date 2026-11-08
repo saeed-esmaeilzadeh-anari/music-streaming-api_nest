@@ -94,6 +94,15 @@ export class ArtistsController {
 
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard, RolesGuard)
+  @Get(':id/follow')
+  @ApiOperation({ summary: "Whether the current user follows this artist" })
+  @ApiResponse({ status: 200, schema: { example: { following: false } } })
+  isFollowing(@Param('id', ParseUUIDPipe) id: string, @CurrentUser('id') userId: string) {
+    return this.followsService.isFollowing(userId, id).then((following) => ({ following }));
+  }
+
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Post(':id/follow')
   @ApiOperation({ summary: 'Follow an artist (idempotent)' })
   @ApiResponse({ status: 201, schema: { example: { following: true } } })
