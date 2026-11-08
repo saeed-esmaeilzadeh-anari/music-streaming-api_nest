@@ -9,6 +9,17 @@ import {
 } from '../../common/mappers/playable.mappers';
 import { RecommendationsQueryDto, RecommendationsResponse, RecommendationSection } from './dto';
 
+type RecommendationTrack = {
+  id: string;
+  title: string;
+  audioUrl: string | null;
+  coverUrl: string | null;
+  durationSec: number;
+  isExplicit: boolean;
+  artist: { id: string; stageName: string };
+  album: { id: string } | null;
+};
+
 /**
  * Home-feed recommendations assembled from listening history, favorites,
  * followed artists and genre affinity. Anonymous visitors receive a cold-start
@@ -347,7 +358,7 @@ export class RecommendationsService {
       ...(excludeIds.length ? { id: { notIn: excludeIds } } : {}),
     };
 
-    let tracks: Awaited<ReturnType<PrismaService['track']['findMany']>> = [];
+    let tracks: RecommendationTrack[] = [];
 
     if (followedArtistIds.length) {
       tracks = await this.prisma.track.findMany({
